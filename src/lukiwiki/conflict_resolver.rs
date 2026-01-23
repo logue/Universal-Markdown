@@ -82,6 +82,56 @@ pub fn preprocess_conflicts(input: &str) -> String {
         })
         .to_string();
 
+    // Protect inline plugins: &function(args){content};
+    // Use base64 encoding to safely preserve content with special characters
+    let inline_plugin = Regex::new(r"&(\w+)\(([^)]*)\)\{((?:[^{}]|\{[^}]*\})*)\};").unwrap();
+    result = inline_plugin
+        .replace_all(&result, |caps: &regex::Captures| {
+            use base64::{Engine as _, engine::general_purpose};
+            let function = &caps[1];
+            let args = &caps[2];
+            let content = &caps[3];
+            let encoded_content = general_purpose::STANDARD.encode(content.as_bytes());
+            format!(
+                "{{{{INLINE_PLUGIN:{}:{}:{}:INLINE_PLUGIN}}}}",
+                function, args, encoded_content
+            )
+        })
+        .to_string();
+
+    // Protect block plugins multiline: @function(args){{ content }}
+    // Use base64 encoding and markers to preserve content
+    let block_plugin_multi = Regex::new(r"@(\w+)\(([^)]*)\)\{\{([\s\S]*?)\}\}").unwrap();
+    result = block_plugin_multi
+        .replace_all(&result, |caps: &regex::Captures| {
+            use base64::{Engine as _, engine::general_purpose};
+            let function = &caps[1];
+            let args = &caps[2];
+            let content = &caps[3];
+            let encoded_content = general_purpose::STANDARD.encode(content.as_bytes());
+            format!(
+                "{{{{BLOCK_PLUGIN:{}:{}:{}:BLOCK_PLUGIN}}}}",
+                function, args, encoded_content
+            )
+        })
+        .to_string();
+
+    // Protect block plugins singleline: @function(args){content}
+    let block_plugin_single = Regex::new(r"@(\w+)\(([^)]*)\)\{([^}]*)\}").unwrap();
+    result = block_plugin_single
+        .replace_all(&result, |caps: &regex::Captures| {
+            use base64::{Engine as _, engine::general_purpose};
+            let function = &caps[1];
+            let args = &caps[2];
+            let content = &caps[3];
+            let encoded_content = general_purpose::STANDARD.encode(content.as_bytes());
+            format!(
+                "{{{{BLOCK_PLUGIN:{}:{}:{}:BLOCK_PLUGIN}}}}",
+                function, args, encoded_content
+            )
+        })
+        .to_string();
+
     result
 }
 
@@ -123,6 +173,67 @@ pub fn postprocess_conflicts(html: &str) -> String {
             block_decorations::apply_block_decorations(decoration)
         })
         .to_string();
+
+    // Restore inline plugins
+    let inline_plugin_marker =
+        Regex::new(r"\{\{INLINE_PLUGIN:(\w+):([^:]*):([^:]*):INLINE_PLUGIN\}\}").unwrap();
+    result = inline_plugin_marker
+        .replace_all(&result, |caps: &regex::Captures| {
+            use base64::{Engine as _, engine::general_purpose};
+            let function = &caps[1];
+            let args = &caps[2];
+            let encoded_content = &caps[3];
+            // Decode base64 to get original content
+            let content = general_purpose::STANDARD
+                .decode(encoded_content.as_bytes())
+                .ok()
+                .and_then(|bytes| String::from_utf8(bytes).ok())
+                .unwrap_or_else(|| encoded_content.to_string());
+
+            // Escape HTML entities in content while preserving & for nested plugins
+            let escaped_content = content.replace('<', "&lt;").replace('>', "&gt;");
+
+            format!(
+                "<span class=\"plugin-{}\" data-args=\"{}\">{}</span>",
+                function,
+                html_escape::encode_double_quoted_attribute(args),
+                escaped_content
+            )
+        })
+        .to_string();
+
+    // Restore block plugins
+    let block_plugin_marker =
+        Regex::new(r"\{\{BLOCK_PLUGIN:(\w+):([^:]*):([^:]*):BLOCK_PLUGIN\}\}").unwrap();
+    result = block_plugin_marker
+        .replace_all(&result, |caps: &regex::Captures| {
+            use base64::{Engine as _, engine::general_purpose};
+            let function = &caps[1];
+            let args = &caps[2];
+            let encoded_content = &caps[3];
+            // Decode base64 to get original content
+            let content = general_purpose::STANDARD
+                .decode(encoded_content.as_bytes())
+                .ok()
+                .and_then(|bytes| String::from_utf8(bytes).ok())
+                .unwrap_or_else(|| encoded_content.to_string());
+
+            // Escape HTML entities in content while preserving & for nested plugins
+            let escaped_content = content.replace('<', "&lt;").replace('>', "&gt;");
+
+            format!(
+                "<div class=\"plugin-{}\" data-args=\"{}\">{}</div>",
+                function,
+                html_escape::encode_double_quoted_attribute(args),
+                escaped_content
+            )
+        })
+        .to_string();
+
+    // Remove wrapping <p> tags around block plugins
+    let wrapped_plugin =
+        Regex::new(r#"<p>\s*(<div class="plugin-[^"]+"[^>]*>.*?</div>)\s*</p>"#).unwrap();
+    result = wrapped_plugin.replace_all(&result, "$1").to_string();
 
     result
 }

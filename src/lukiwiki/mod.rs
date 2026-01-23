@@ -29,11 +29,11 @@ pub fn apply_lukiwiki_syntax(html: &str) -> String {
     result = protected;
 
     // Apply transformations in order
+    // Note: Plugins are handled in conflict_resolver::postprocess_conflicts
     result = conflict_resolver::postprocess_conflicts(&result);
     result = emphasis::apply_lukiwiki_emphasis(&result);
     result = block_decorations::apply_block_decorations(&result);
     result = inline_decorations::apply_inline_decorations(&result);
-    result = plugins::apply_plugin_syntax(&result);
 
     // Restore protected code sections
     restore_code_sections(&result, &placeholders)

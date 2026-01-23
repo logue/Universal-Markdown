@@ -12,9 +12,20 @@ fn main() {
         ),
         ("COLOR(red): Red text", "COLOR decoration"),
         (
-            "**Bold** with &color(red){colored}; and *italic*",
-            "Inline decorations",
+            "**Bold** with inline text and *italic*",
+            "Markdown emphasis",
         ),
+        ("@toc(2){{ }}", "Block plugin multiline"),
+        (
+            "@include(file.txt){default content}",
+            "Block plugin singleline",
+        ),
+        ("&highlight(yellow){important text};", "Inline plugin"),
+        (
+            "&outer(arg1){text &inner(arg2){nested}; more};",
+            "Nested plugins",
+        ),
+        ("@box(){{ **bold** and text }}", "Plugin with wiki syntax"),
     ];
 
     for (input, label) in test_cases {
