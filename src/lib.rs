@@ -65,14 +65,17 @@ pub mod sanitizer;
 /// assert!(html.contains("<strong>"));
 /// ```
 pub fn parse(input: &str) -> String {
-    // Step 1: Sanitize input
-    let sanitized = sanitizer::sanitize(input);
+    // Step 1: Pre-process to resolve syntax conflicts (before sanitization)
+    let preprocessed = lukiwiki::conflict_resolver::preprocess_conflicts(input);
 
-    // Step 2: Parse with comrak-based parser
+    // Step 2: Sanitize input
+    let sanitized = sanitizer::sanitize(&preprocessed);
+
+    // Step 3: Parse with comrak-based parser
     let options = parser::ParserOptions::default();
     let html = parser::parse_to_html(&sanitized, &options);
 
-    // Step 3: Apply LukiWiki-specific syntax
+    // Step 4: Apply LukiWiki-specific syntax (includes post-processing)
     lukiwiki::apply_lukiwiki_syntax(&html)
 }
 
