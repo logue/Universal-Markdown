@@ -40,6 +40,7 @@
 
 use wasm_bindgen::prelude::*;
 
+pub mod lukiwiki;
 pub mod parser;
 pub mod sanitizer;
 
@@ -69,7 +70,10 @@ pub fn parse(input: &str) -> String {
 
     // Step 2: Parse with comrak-based parser
     let options = parser::ParserOptions::default();
-    parser::parse_to_html(&sanitized, &options)
+    let html = parser::parse_to_html(&sanitized, &options);
+
+    // Step 3: Apply LukiWiki-specific syntax
+    lukiwiki::apply_lukiwiki_syntax(&html)
 }
 
 /// WASM-exposed API for parsing LukiWiki markup
