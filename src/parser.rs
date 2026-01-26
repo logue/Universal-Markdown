@@ -3,7 +3,8 @@
 //! This module provides the core parsing functionality using comrak as the base
 //! Markdown parser, with extensions for LukiWiki-specific syntax.
 
-use comrak::{Arena, ComrakOptions, format_html, parse_document};
+use comrak::options::ListStyleType;
+use comrak::{Arena, Options, Plugins, format_html_with_plugins, parse_document};
 
 /// Parser configuration for LukiWiki markup
 #[derive(Debug, Clone)]
@@ -49,7 +50,7 @@ impl Default for ParserOptions {
 /// ```
 pub fn parse_to_html(input: &str, options: &ParserOptions) -> String {
     // Configure comrak options
-    let mut comrak_options = ComrakOptions::default();
+    let mut comrak_options = Options::default();
 
     // Enable extensions
     if options.gfm_extensions {
@@ -59,7 +60,7 @@ pub fn parse_to_html(input: &str, options: &ParserOptions) -> String {
         comrak_options.extension.autolink = true;
         comrak_options.extension.tasklist = true;
         comrak_options.extension.footnotes = true; // Enable footnotes
-        comrak_options.extension.header_ids = Some("".to_string());
+        comrak_options.extension.header_ids = None; // Disable automatic IDs, we'll add them ourselves
     }
 
     // Render options
@@ -67,9 +68,9 @@ pub fn parse_to_html(input: &str, options: &ParserOptions) -> String {
     comrak_options.render.github_pre_lang = true; // Use GitHub-style language tags
     comrak_options.render.full_info_string = false;
     comrak_options.render.width = 0;
-    comrak_options.render.unsafe_ = false; // Don't render raw HTML
+    comrak_options.render.r#unsafe = false; // Don't render raw HTML
     comrak_options.render.escape = false;
-    comrak_options.render.list_style = comrak::ListStyleType::Dash;
+    comrak_options.render.list_style = ListStyleType::Dash;
 
     // Create arena for AST nodes
     let arena = Arena::new();
@@ -81,10 +82,11 @@ pub fn parse_to_html(input: &str, options: &ParserOptions) -> String {
     // This is where we'll add custom syntax handling in later steps
 
     // Render to HTML
-    let mut html = vec![];
-    format_html(root, &comrak_options, &mut html).expect("Failed to render HTML");
+    let mut html = String::new();
+    format_html_with_plugins(root, &comrak_options, &mut html, &Plugins::default())
+        .expect("Failed to render HTML");
 
-    String::from_utf8(html).expect("Invalid UTF-8 in HTML output")
+    html
 }
 
 #[cfg(test)]

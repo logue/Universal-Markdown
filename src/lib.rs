@@ -109,8 +109,8 @@ pub fn parse_with_frontmatter(input: &str) -> ParseResult {
     // Step 0: Extract frontmatter
     let (frontmatter_data, content) = frontmatter::extract_frontmatter(input);
 
-    // Step 1: Pre-process to resolve syntax conflicts (before sanitization)
-    let preprocessed = lukiwiki::conflict_resolver::preprocess_conflicts(&content);
+    // Step 1: Pre-process to resolve syntax conflicts and extract custom header IDs
+    let (preprocessed, header_map) = lukiwiki::conflict_resolver::preprocess_conflicts(&content);
 
     // Step 2: Sanitize input
     let sanitized = sanitizer::sanitize(&preprocessed);
@@ -119,8 +119,8 @@ pub fn parse_with_frontmatter(input: &str) -> ParseResult {
     let options = parser::ParserOptions::default();
     let html = parser::parse_to_html(&sanitized, &options);
 
-    // Step 4: Apply LukiWiki-specific syntax (includes post-processing)
-    let final_html = lukiwiki::apply_lukiwiki_syntax(&html);
+    // Step 4: Apply LukiWiki-specific syntax and custom header IDs (includes post-processing)
+    let final_html = lukiwiki::apply_lukiwiki_syntax_with_headers(&html, &header_map);
 
     // Step 5: Extract footnotes from HTML
     let (body_html, footnotes_html) = extract_footnotes(&final_html);

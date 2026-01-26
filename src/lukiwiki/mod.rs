@@ -22,6 +22,24 @@ pub mod plugins;
 ///
 /// Transformed HTML with LukiWiki syntax applied
 pub fn apply_lukiwiki_syntax(html: &str) -> String {
+    let header_map = conflict_resolver::HeaderIdMap::new();
+    apply_lukiwiki_syntax_with_headers(html, &header_map)
+}
+
+/// Apply LukiWiki-specific transformations with custom header IDs
+///
+/// # Arguments
+///
+/// * `html` - The HTML output from the Markdown parser
+/// * `header_map` - Map of custom header IDs
+///
+/// # Returns
+///
+/// Transformed HTML with LukiWiki syntax and custom header IDs applied
+pub fn apply_lukiwiki_syntax_with_headers(
+    html: &str,
+    header_map: &conflict_resolver::HeaderIdMap,
+) -> String {
     let mut result = html.to_string();
 
     // Protect code blocks and inline code from transformation
@@ -30,7 +48,7 @@ pub fn apply_lukiwiki_syntax(html: &str) -> String {
 
     // Apply transformations in order
     // Note: Plugins are handled in conflict_resolver::postprocess_conflicts
-    result = conflict_resolver::postprocess_conflicts(&result);
+    result = conflict_resolver::postprocess_conflicts(&result, header_map);
     result = emphasis::apply_lukiwiki_emphasis(&result);
     result = block_decorations::apply_block_decorations(&result);
     result = inline_decorations::apply_inline_decorations(&result);

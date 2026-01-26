@@ -190,6 +190,51 @@ LukiWiki-rsには、プラグインと同じ表記を使う**組み込み装飾�
 
 ## LukiWiki構文
 
+## LukiWiki構文
+
+### ヘッダーID
+
+ヘッダーには自動的にURLセーフなIDが付与されます：
+
+**自動採番（デフォルト）**:
+
+```markdown
+# Introduction
+
+## Details
+```
+
+生成されるHTML:
+
+```html
+<h1><a href="#heading-1" id="heading-1"></a>Introduction</h1>
+<h2><a href="#heading-2" id="heading-2"></a>Details</h2>
+```
+
+**カスタムID（推奨）**:
+
+```markdown
+# Introduction {#intro}
+
+## Details {#details}
+```
+
+生成されるHTML:
+
+```html
+<h1><a href="#intro" id="intro"></a>Introduction</h1>
+<h2><a href="#details" id="details"></a>Details</h2>
+```
+
+**メリット**:
+
+- ✅ URLセーフ（マルチバイト文字を避ける）
+- ✅ 短いURL（SNSでの共有に最適）
+- ✅ 安定したリンク（ヘッダーテキスト変更に強い）
+- ✅ セキュリティ（同形異字による偽装を防止）
+
+カスタムIDは`{#custom-id}`構文で指定します。指定がない場合は`heading-1`, `heading-2`のように自動採番されます。
+
 ### 強調表現
 
 LukiWiki独自の視覚的強調：
@@ -252,9 +297,9 @@ wasm-pack build --target web
 cargo test
 ```
 
-**テスト結果**: 108 tests passing
+**テスト結果**: 112 tests passing
 
-- 68 unit tests (including 5 frontmatter tests)
+- 72 unit tests (including 5 frontmatter + 3 custom header ID tests)
 - 18 CommonMark compliance tests
 - 13 conflict resolution tests
 - 9 doctests

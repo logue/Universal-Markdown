@@ -123,6 +123,29 @@
     - 注: プラグインの実際の実行処理は別レイヤー(JavaScript/フロントエンド)で処理
     - パーサーはプラグイン呼び出しの検出とメタデータ保持のみを担当
     - **重要**: プラグインが生成するHTML出力は許可される（プラグイン側で安全性を保証）
+  - **カスタムヘッダーID**: `# Header {#custom-id}` ✅
+    - PukiWiki Advanceと同様の構文
+    - ヘッダーに任意のIDを指定可能
+    - 指定がない場合は`heading-1`, `heading-2`と自動採番
+    - **メリット**:
+      - URLセーフ（マルチバイト文字によるエンコード問題を回避）
+      - 短いURL（SNSでの共有に最適）
+      - 安定したリンク（ヘッダーテキスト変更に強い）
+      - セキュリティ（同形異字による偽装攻撃を防止）
+    - 実装: [src/lukiwiki/conflict_resolver.rs](src/lukiwiki/conflict_resolver.rs)でカスタムID抽出とHTML生成
+    - [examples/test_header_id.rs](examples/test_header_id.rs)でデモンストレーション
+  - **フロントマター**: YAML/TOML形式のメタデータ ✅
+    - YAML形式: `---` で囲む
+    - TOML形式: `+++` で囲む
+    - HTML出力から除外され、`ParseResult.frontmatter`で取得可能
+    - 実装: [src/frontmatter.rs](src/frontmatter.rs)
+    - [examples/test_frontmatter.rs](examples/test_frontmatter.rs)でデモンストレーション
+  - **フットノート（脚注）**: Markdown標準構文のサポート ✅
+    - 構文: `[^1]`, `[^note]` で参照、`[^1]: content` で定義
+    - HTML出力: `<section class="footnotes">` として生成
+    - 本文から分離され、`ParseResult.footnotes`で取得可能
+    - comrakの`extension.footnotes`を有効化
+    - [examples/test_footnotes.rs](examples/test_footnotes.rs)でデモンストレーション
   - **テーブル**: `|~Header|h` 形式 ⏸️ 保留
     - 行修飾子: `h`(ヘッダー), `f`(フッター), `c`(キャプション)
     - セル内色/配置: `COLOR(fg,bg):`, `RIGHT:`, `CENTER:`, `LEFT:`
@@ -135,14 +158,16 @@
   - block_decorations.rs (7 tests)
   - inline_decorations.rs (9 tests)
   - plugins.rs (11 tests)
+  - frontmatter.rs (5 tests)
+  - conflict_resolver.rs (11 tests including custom header ID tests)
 - レガシー構文互換性テスト ✅ (31 LukiWiki syntax tests passing)
 
-**テスト結果**: 101 tests passing
+**テスト結果**: 112 tests passing
 
-- 63 unit tests
+- 72 unit tests (including 5 frontmatter + 3 custom header ID tests)
 - 18 CommonMark tests
 - 13 conflict resolution tests
-- 7 doctests
+- 9 doctests
 
 ---
 
@@ -180,17 +205,24 @@
     - ブロック: `@function(args){{ content }}` / `@function(args){content}`
     - base64エンコーディングでコンテンツを安全に保持
     - ネストされたプラグインと内部のWiki構文を完全保護
+  - **カスタムヘッダーID**: ✅
+    - `# Header {#custom-id}` 構文のサポート
+    - プリプロセスでカスタムIDを抽出・除去
+    - ポストプロセスで`<h1><a href="#id" id="id"></a>Title</h1>`形式のHTMLを生成
+    - カスタムIDがない場合は自動採番（`heading-1`, `heading-2`...）
 
 **成果物**:
 
 - 構文曖昧性解消モジュール ✅
 - プリプロセス/ポストプロセスパイプライン ✅
 - 競合検出診断ツール ✅
+- カスタムヘッダーID実装 ✅
 
-**テスト結果**: 13 conflict resolution tests passing
+**テスト結果**: 16 conflict resolution tests passing (including 3 custom header ID tests)
 
 - 競合ケースの網羅的テスト
 - 優先順位ドキュメント（コード内コメント）
+- カスタムヘッダーID抽出・適用テスト
 
 ---
 
