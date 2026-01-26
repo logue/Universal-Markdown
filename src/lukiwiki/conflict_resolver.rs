@@ -204,9 +204,11 @@ pub fn postprocess_conflicts(html: &str, header_map: &HeaderIdMap) -> String {
             let close_level = &caps[3];
 
             let id = if let Some(custom_id) = header_map.ids.get(&heading_counter) {
-                custom_id.clone()
+                // Add 'h-' prefix to custom IDs to avoid conflicts with system IDs
+                format!("h-{}", custom_id)
             } else {
-                format!("heading-{}", heading_counter)
+                // Auto-numbered IDs also use 'h-' prefix for consistency
+                format!("h-{}", heading_counter)
             };
 
             format!(
@@ -404,8 +406,8 @@ mod tests {
         let html = "<h1>Header</h1>";
         let output = postprocess_conflicts(html, &header_map);
 
-        assert!(output.contains("id=\"my-custom-id\""));
-        assert!(output.contains("href=\"#my-custom-id\""));
+        assert!(output.contains("id=\"h-my-custom-id\""));
+        assert!(output.contains("href=\"#h-my-custom-id\""));
         assert!(!output.contains("heading-1"));
     }
 
@@ -415,8 +417,8 @@ mod tests {
         let html = "<h1>First</h1><h2>Second</h2>";
         let output = postprocess_conflicts(html, &header_map);
 
-        assert!(output.contains("id=\"heading-1\""));
-        assert!(output.contains("id=\"heading-2\""));
+        assert!(output.contains("id=\"h-1\""));
+        assert!(output.contains("id=\"h-2\""));
     }
 
     #[test]

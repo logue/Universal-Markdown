@@ -194,7 +194,7 @@ LukiWiki-rsには、プラグインと同じ表記を使う**組み込み装飾�
 
 ### ヘッダーID
 
-ヘッダーには自動的にURLセーフなIDが付与されます：
+ヘッダーには自動的にURLセーフなIDが付与されます。すべてのIDには`h-`プレフィックスが付与され、システムIDとの競合を防ぎます。
 
 **自動採番（デフォルト）**:
 
@@ -207,8 +207,8 @@ LukiWiki-rsには、プラグインと同じ表記を使う**組み込み装飾�
 生成されるHTML:
 
 ```html
-<h1><a href="#heading-1" id="heading-1"></a>Introduction</h1>
-<h2><a href="#heading-2" id="heading-2"></a>Details</h2>
+<h1><a href="#h-1" id="h-1"></a>Introduction</h1>
+<h2><a href="#h-2" id="h-2"></a>Details</h2>
 ```
 
 **カスタムID（推奨）**:
@@ -222,8 +222,8 @@ LukiWiki-rsには、プラグインと同じ表記を使う**組み込み装飾�
 生成されるHTML:
 
 ```html
-<h1><a href="#intro" id="intro"></a>Introduction</h1>
-<h2><a href="#details" id="details"></a>Details</h2>
+<h1><a href="#h-intro" id="h-intro"></a>Introduction</h1>
+<h2><a href="#h-details" id="h-details"></a>Details</h2>
 ```
 
 **メリット**:
@@ -232,8 +232,9 @@ LukiWiki-rsには、プラグインと同じ表記を使う**組み込み装飾�
 - ✅ 短いURL（SNSでの共有に最適）
 - ✅ 安定したリンク（ヘッダーテキスト変更に強い）
 - ✅ セキュリティ（同形異字による偽装を防止）
+- ✅ ID競合の防止（`h-`プレフィックスでシステムIDと分離）
 
-カスタムIDは`{#custom-id}`構文で指定します。指定がない場合は`heading-1`, `heading-2`のように自動採番されます。
+カスタムIDは`{#custom-id}`構文で指定します。指定がない場合は`h-1`, `h-2`のように自動採番されます。
 
 ### 強調表現
 

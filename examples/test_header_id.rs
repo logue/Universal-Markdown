@@ -44,21 +44,21 @@ This is the introduction section.
     println!("Output:\n{}\n", output3);
 
     // Verify custom IDs are working
-    if output2.contains(r#"id="intro""#) && output2.contains(r#"id="main""#) {
+    if output2.contains(r#"id="h-intro""#) && output2.contains(r#"id="h-main""#) {
         println!("\n✓ Custom header IDs are working correctly");
     } else {
         println!("\n✗ Custom header IDs not found");
     }
 
     // Verify sequential IDs for headers without custom IDs
-    if output1.contains(r#"id="heading-1""#) && output1.contains(r#"id="heading-2""#) {
+    if output1.contains(r#"id="h-1""#) && output1.contains(r#"id="h-2""#) {
         println!("✓ Sequential header IDs are working correctly");
     } else {
         println!("✗ Sequential header IDs not found");
     }
 
     // Verify Japanese headers use sequential IDs (not the text itself)
-    if output3.contains(r#"id="heading-"#) && !output3.contains(r#"id="日本語"#) {
+    if output3.contains(r#"id="h-"#) && !output3.contains(r#"id="日本語"#) {
         println!("✓ Multibyte characters are handled safely with sequential IDs");
     } else {
         println!("✗ Multibyte handling issue detected");
