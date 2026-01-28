@@ -110,19 +110,19 @@
       - 例: `&ruby(Ashita){明日};` → `<ruby>明日<rp>(</rp><rt>Ashita</rt><rp>)</rp></ruby>`
       - 注: `<rp>`タグはルビ未対応ブラウザで括弧を表示するためのフォールバック
     - **セマンティックHTML要素**:
-      - `&dfn{text};` - 定義される用語 → `<dfn>text</dfn>`
-      - `&kbd{text};` - キーボード入力 → `<kbd>text</kbd>`
-      - `&samp{text};` - サンプル出力 → `<samp>text</samp>`
-      - `&var{text};` - 変数 → `<var>text</var>`
-      - `&cite{text};` - 作品タイトル → `<cite>text</cite>`
-      - `&q{text};` - 短い引用 → `<q>text</q>`
-      - `&small{text};` - 細目・注釈 → `<small>text</small>`
-      - `&u{text};` - 下線（非言語的注釈） → `<u>text</u>`
+      - `&dfn(text);` - 定義される用語 → `<dfn>text</dfn>`
+      - `&kbd(text);` - キーボード入力 → `<kbd>text</kbd>`
+      - `&samp(text);` - サンプル出力 → `<samp>text</samp>`
+      - `&var(text);` - 変数 → `<var>text</var>`
+      - `&cite(text);` - 作品タイトル → `<cite>text</cite>`
+      - `&q(text);` - 短い引用 → `<q>text</q>`
+      - `&small(text);` - 細目・注釈 → `<small>text</small>`
+      - `&u(text);` - 下線（非言語的注釈） → `<u>text</u>`
         - 注: Markdownに下線構文は存在しないため矛盾なし
       - `&time(datetime){text};` - 日時 → `<time datetime="datetime">text</time>`
         - 例: `&time(2026-01-26){今日};` → `<time datetime="2026-01-26">今日</time>`
       - `&data(value){text};` - 機械可読データ → `<data value="value">text</data>`
-      - `&bdi{text};` - 双方向テキスト分離 → `<bdi>text</bdi>`
+      - `&bdi(text);` - 双方向テキスト分離 → `<bdi>text</bdi>`
       - `&bdo(dir){text};` - 双方向テキスト上書き → `<bdo dir="dir">text</bdo>`
         - 例: `&bdo(rtl){right-to-left};` → `<bdo dir="rtl">right-to-left</bdo>`
       - `&wbr;` - 改行可能位置 → `<wbr />`
@@ -145,30 +145,44 @@
       - 例: `&br;` → `<span class="plugin-br" data-args='[]' />`
     - **ブロック型（複数行）**: `@function(args){{ content }}`
       - パース出力: `<div class="plugin-function" data-args='["arg1","arg2"]'>content</div>`
+      - デフォルトタグ: `div`（SSR対応、SEO対応、アクセシビリティ対応）
+      - カスタムタグ指定: プラグイン側で`data-tag`属性を使用して任意のタグを指定可能
+        - セマンティックタグ: `aside`, `figure`, `section`, `nav`, `article`, `header`, `footer`, `main`
+        - 遅延実行: `template`（JavaScript必須、SSR非対応）
+      - 使い分け:
+        - `div`/セマンティックタグ: サーバーサイドレンダリング、静的コンテンツ、SEO重要、アクセシビリティ必須
+        - `template`: クライアントサイド専用、動的コンテンツ（API取得等）、遅延実行、JavaScript必須
     - **ブロック型（単行）**: `@function(args){content}`
       - パース出力: `<div class="plugin-function" data-args='["arg1","arg2"]'>content</div>`
+      - デフォルトタグ: `div`
+      - カスタムタグ指定: プラグイン側で`data-tag`属性を使用
     - **ブロック型（args-only）**: `@function(args)` ✅
-      - パース出力: `<div class="plugin-function" data-args='["arg1","arg2"]' />`
-      - 例: `@feed(https://example.com/feed.atom, 10)` → `<div class="plugin-feed" data-args='["https://example.com/feed.atom","10"]' />`
+      - パース出力: `<div class="plugin-function" data-args='["arg1","arg2"]' data-tag="div" />`
+      - デフォルトタグ: `div`（SSR対応、SEO対応、アクセシビリティ対応）
+      - カスタムタグ指定: プラグイン側で`data-tag`属性を読み取り、指定されたタグで置換
+      - 例: `@callout(info)` → `<div class="plugin-callout" data-args='["info"]' data-tag="div" />`
+      - 例（カスタムタグ）: `<aside class="plugin-callout" data-args='["info"]'>...</aside>`
       - **重要**: 括弧必須（`@function()`）で@mentionと区別
       - **URL保護**: argsをbase64エンコードしてMarkdownパーサーのautolink機能から保護
     - **ブロック型（no-args）**: `@function()` ✅
-      - パース出力: `<div class="plugin-function" data-args='[]' />`
-      - 例: `@toc()` → `<div class="plugin-toc" data-args='[]' />`
+      - パース出力: `<div class="plugin-function" data-args='[]' data-tag="div" />`
+      - デフォルトタグ: `div`
+      - カスタムタグ指定: プラグイン側で`data-tag`属性を読み取り
+      - 例: `@toc()` → `<div class="plugin-toc" data-args='[]' data-tag="div" />`
+      - 例（カスタムタグ）: `<nav class="plugin-toc">...</nav>`
       - **重要**: 括弧必須で@mentionと区別
-    - **引数形式**: ✅
-      - カンマ区切り → JSON配列に変換
-      - 出力: `data-args='["arg1","arg2"]'` (シングルクォート、JSON配列)
-    - **ネストされたプラグイン呼び出しをサポート**:
-      - 例: `&outer(arg1){text &inner(arg2){nested}; more};`
-      - data-content属性内で内側のプラグイン構文を生のまま保持
-    - **Wiki構文の保持**:
-      - プラグインコンテンツ内のWiki構文（`**bold**`など）はそのまま保持
-      - JavaScript側で再パース可能な状態で出力
-    - 実装方法: [src/lukiwiki/conflict_resolver.rs](src/lukiwiki/conflict_resolver.rs)でbase64エンコーディングによる保護
-    - 注: プラグインの実際の実行処理は別レイヤー(JavaScript/フロントエンド)で処理
-    - パーサーはプラグイン呼び出しの検出とメタデータ保持のみを担当
-    - **重要**: プラグインが生成するHTML出力は許可される（プラグイン側で安全性を保証）
+    - **カスタムタグの使用例**:
+      - `@gallery(photos){{ ... }}` → JavaScript側で `<figure class="plugin-gallery">...</figure>` に変換
+      - `@callout(warning){{ ... }}` → JavaScript側で `<aside class="plugin-callout">...</aside>` に変換
+      - `@toc()` → JavaScript側で `<nav class="plugin-toc">...</nav>` に変換
+      - `@feed(url)` → JavaScript側で `<template>`から動的コンテンツ生成（CSR専用）
+    - **許可されるタグ**:
+      - **セマンティックタグ**（推奨）: `div`, `aside`, `figure`, `section`, `nav`, `article`, `header`, `footer`, `main`
+      - **遅延実行タグ**: `template`（JavaScript必須、SSR非対応）
+    - **タグ選択ガイドライン**:
+      - `div`/セマンティックタグ: サーバーサイドレンダリング、静的コンテンツ、SEO重要、アクセシビリティ必須
+      - `template`: クライアントサイド専用、動的コンテンツ（API取得等）、遅延実行、JavaScript必須
+    - **セキュリティ**: プラグイン側でタグ名のホワイトリストチェックを推奨
   - **カスタムヘッダーID**: `# Header {#custom-id}` ✅
     - PukiWiki Advanceと同様の構文
     - ヘッダーに任意のIDを指定可能
@@ -229,7 +243,7 @@
 - [src/lukiwiki/conflict_resolver.rs](src/lukiwiki/conflict_resolver.rs)を作成 ✅
 - マーカーベース前処理システム実装 ✅
   - プリプロセス: LukiWiki構文を`{{MARKER:...:MARKER}}`形式で保護
-  - サニタイゼーション: マーカーはHTMLエスケープされない
+  - サニタイズーション: マーカーはHTMLエスケープされない
   - ポストプロセス: マーカーを適切なHTMLに復元
 - 競合解決ルール: ✅
   - **ブロック引用**:
