@@ -3,7 +3,7 @@
 **プロジェクト概要**: Markdown上位互換を目指すLukiWikiのパース処理をRustで実装する。CommonMark仕様テストを合理的にパス(75%+目標)しつつ、レガシー構文を保持する。
 
 **作成日**: 2026年1月23日
-**最終更新**: 2026年1月26日
+**最終更新**: 2026年1月30日
 **Rustバージョン**: 1.93 (最新安定版)
 **ライセンス**: MIT
 
@@ -87,20 +87,94 @@
     - `*text*` → `<em>text</em>` (セマンティックな強調)
     - 注: 表示は同じだが、意味合いが異なる（視覚的 vs セマンティック）
   - **ブロック装飾プレフィックス** (行頭に配置): ✅
+    - **Bootstrap固定スタイルシステム**: 🚧 実装予定
+      - デフォルトでBootstrap 5（Core UI互換）クラスを使用
+      - text-align系はBootstrapクラスに完全置換
+      - color/backgroundは任意色対応のためインラインスタイル維持
+      - font-sizeはハイブリッド方式（単位なし→Bootstrapクラス、単位あり→インラインスタイル）
     - `COLOR(fg,bg): text` - 前景色・背景色指定（空白時は`inherit`）
-      - 例: `COLOR(grey): 灰色の文` → `<p style="color: grey">灰色の文</p>`
-      - 例: `COLOR(,#CCCCFF): 背景色のみ` → `<p style="background-color: #CCCCFF">背景色のみ</p>`
-    - `SIZE(rem): text` - フォントサイズ指定
-      - 例: `SIZE(1.5): 大きな文` → `<p style="font-size: 1.5rem">大きな文</p>`
-    - `RIGHT: text` - 右寄せ
-    - `CENTER: text` - 中央寄せ
-    - `LEFT: text` - 左寄せ（デフォルト）
-    - [src/lukiwiki/block_decorations.rs](src/lukiwiki/block_decorations.rs)実装完了
+      - **⚠️ 実装方針検討中**: ダークモード対応のため以下の選択肢を検討
+      - **Bootstrap 5.3で利用可能な色（完全リスト）**:
+        - **テーマカラー（8色）**: `primary`, `secondary`, `success`, `danger`, `warning`, `info`, `light`, `dark`
+        - **基本カラー（14色）**: `blue`, `indigo`, `purple`, `pink`, `red`, `orange`, `yellow`, `green`, `teal`, `cyan`, `black`, `white`, `gray`, `gray-dark`
+        - **グレースケール（9段階）**: `gray-100`, `gray-200`, `gray-300`, `gray-400`, `gray-500`, `gray-600`, `gray-700`, `gray-800`, `gray-900`
+        - **各色の濃淡（9段階）**: `blue-100`～`blue-900`, `indigo-100`～`indigo-900`, など（基本カラー全てに対応）
+        - **セマンティック色（v5.3追加）**: `body`, `body-secondary`, `body-tertiary`, `body-emphasis`, `border`, など
+        - **サブトル色**: `primary-bg-subtle`, `success-border-subtle`, `danger-text-emphasis`, など
+      - **合計**: 約200色のバリエーション（濃淡含む）
+      - **十分性の評価**:
+        - ✅ テーマカラー8色で基本的な用途はカバー可能
+        - ✅ グレースケール9段階で微妙な濃淡表現が可能
+        - ✅ 各色の100～900段階で細かい調整が可能
+        - ✅ ダークモード対応のCSS変数が自動適用
+        - ⚠️ 任意の中間色（例: `#FF6B35`）は表現不可
+        - ⚠️ グラデーションやカスタムブランドカラーは不可
+      - **判断**: Wiki用途では**Bootstrap色のみで十分と思われる**
+        - Wikiはドキュメント中心で、デザイン自由度より読みやすさ優先
+        - テーブルやコールアウトでの色分けは十分対応可能
+        - ダークモード対応のメリットが大きい
+      - **推奨実装: 案A（Bootstrap変数のみ）を採用**
+        - 前景色: `text-{color}`クラス（例: `text-primary`, `text-danger-emphasis`）
+        - 背景色: `bg-{color}`クラス（例: `bg-warning`, `bg-success-subtle`）
+        - 例: `COLOR(danger): エラー` → `<p class="text-danger">エラー</p>`
+        - 例: `COLOR(,warning-subtle): 警告背景` → `<p class="bg-warning-subtle">警告背景</p>`
+        - 例: `COLOR(primary,primary-subtle): 強調` → `<p class="text-primary bg-primary-subtle">強調</p>`
+      - 現在の実装: 案B（任意色、インラインスタイル）
+      - 移行コスト: 既存利用者なしのため無視可能
+    - `SIZE(value): text` - フォントサイズ指定
+      - **単位なし（数値のみ）**: Bootstrapクラスにマッピング
+        - 例: `SIZE(2.5): 最大` → `<p class="fs-1">最大</p>` (2.5rem)
+        - 例: `SIZE(2): 大きい` → `<p class="fs-2">大きい</p>` (2rem)
+        - 例: `SIZE(1.75): やや大` → `<p class="fs-3">やや大</p>` (1.75rem)
+        - 例: `SIZE(1.5): 標準より大` → `<p class="fs-4">標準より大</p>` (1.5rem)
+        - 例: `SIZE(1.25): やや小` → `<p class="fs-5">やや小</p>` (1.25rem)
+        - 例: `SIZE(0.875): 小さい` → `<p class="fs-6">小さい</p>` (0.875rem)
+        - マッピング外の値: インラインスタイル出力（例: `SIZE(1.8):` → `style="font-size: 1.8rem"`）
+      - **単位あり**: インラインスタイル出力
+        - 例: `SIZE(1.5rem): 1.5rem` → `<p style="font-size: 1.5rem">1.5rem</p>`
+        - 例: `SIZE(2em): 2em` → `<p style="font-size: 2em">2em</p>`
+        - 例: `SIZE(16px): 16px` → `<p style="font-size: 16px">16px</p>`
+      - 原則: LukiWikiはrem単位を標準とする
+    - `RIGHT: text` - 右寄せ → `<p class="text-end">text</p>` (Bootstrap)
+    - `CENTER: text` - 中央寄せ → `<p class="text-center">text</p>` (Bootstrap)
+    - `LEFT: text` - 左寄せ → `<p class="text-start">text</p>` (Bootstrap)
+    - `TRUNCATE: text` - テキスト省略 → `<p class="text-truncate">text</p>` (Bootstrap) 🚧 実装予定
+      - 長いテキストを`...`で省略（`overflow: hidden; text-overflow: ellipsis; white-space: nowrap`）
+      - 幅指定はユーザーがCSSで指定する前提（テーブルセルでは自動適用）
+    - **複合構文**: 複数のプレフィックスを組み合わせ可能 🚧 実装予定
+      - **必須機能**: テーブルセル装飾で複数スタイルの同時適用が必要
+      - **構文順序**: `SIZE(...): COLOR(...): TRUNCATE: RIGHT/CENTER/LEFT: テキスト`
+        - サイズ → 色 → 省略 → 配置の順序を推奨（順不同でも動作）
+      - **実装方針**:
+        - 1つの正規表現で全プレフィックスをまとめて解析
+        - パース結果を構造体に格納し、1つの`<p>`タグに統合
+        - Bootstrapクラスとインラインスタイルを適切に分離
+      - **出力例**:
+        - `SIZE(1.5): COLOR(red): CENTER: テキスト` → `<p class="fs-4 text-center" style="color: red">テキスト</p>`
+        - `TRUNCATE: CENTER: 長いテキスト` → `<p class="text-truncate text-center">長いテキスト</p>`
+        - `COLOR(primary): RIGHT: 青い右寄せ` → `<p class="text-primary text-end">青い右寄せ</p>` (案A採用時)
+      - **技術的課題**:
+        - 現在の実装は各プレフィックスが個別に`<p>`タグを生成（不正なネスト発生）
+        - 大幅な書き換えが必要（block_decorations.rsの再設計）
+        - conflict_resolver.rsでの複合マーカー処理も対応必須
+      - テーブルのセル装飾で特に有用
+    - [src/lukiwiki/block_decorations.rs](src/lukiwiki/block_decorations.rs)実装完了（Bootstrap対応は未実装）
   - **インライン装飾関数** (プラグインのインライン型と同じ表記): ✅
     - `&color(fg,bg){text};` - 文字色・背景色指定（空白時は`inherit`）
-      - 例: `&color(red){赤い文字};` → `<span style="color: red">赤い文字</span>`
-      - 例: `&color(,yellow){黄色背景};` → `<span style="background-color: yellow">黄色背景</span>`
-    - `&size(rem){text};` - フォントサイズ指定
+      - **注**: ブロック版`COLOR()`と同じ実装方針を採用（上記参照）
+      - **推奨実装: Bootstrap変数のみ**
+        - 例: `&color(danger){エラー};` → `<span class="text-danger">エラー</span>`
+        - 例: `&color(,warning-subtle){警告};` → `<span class="bg-warning-subtle">警告</span>`
+        - 例: `&color(primary,primary-subtle){強調};` → `<span class="text-primary bg-primary-subtle">強調</span>`
+      - 現在の実装: 任意色、インラインスタイル
+    - `&size(value){text};` - フォントサイズ指定
+      - **単位なし（数値のみ）**: Bootstrapクラスにマッピング 🚧 実装予定
+        - 例: `&size(2){大きい};` → `<span class="fs-2">大きい</span>` (2rem)
+        - 例: `&size(1.5){やや大};` → `<span class="fs-4">やや大</span>` (1.5rem)
+        - マッピング外: インラインスタイル（例: `&size(1.8){text};` → `style="font-size: 1.8rem"`）
+      - **単位あり**: インラインスタイル出力
+        - 例: `&size(1.5rem){text};` → `<span style="font-size: 1.5rem">text</span>`
+        - 例: `&size(2em){text};` → `<span style="font-size: 2em">text</span>`
     - `&sup(text);` - 上付き文字 → `<sup>text</sup>`
     - `&sub(text);` - 下付き文字 → `<sub>text</sub>`
     - `&lang(locale){text};` - 言語指定 → `<span lang="locale">text</span>`
@@ -183,6 +257,44 @@
       - `div`/セマンティックタグ: サーバーサイドレンダリング、静的コンテンツ、SEO重要、アクセシビリティ必須
       - `template`: クライアントサイド専用、動的コンテンツ（API取得等）、遅延実行、JavaScript必須
     - **セキュリティ**: プラグイン側でタグ名のホワイトリストチェックを推奨
+  - **プラグイン開発者向けガイドライン**: 🚧 ドキュメント作成予定
+    - パーサーは`plugin-*`クラスのみ生成
+    - フロントエンドJavaScriptでBootstrapコンポーネントを動的追加
+    - 例: `<div class="plugin-alert" data-args='["info"]'>` → JavaScript側で`alert alert-info`クラス追加
+    - Bootstrap 5（Core UI互換）のユーティリティクラス（`text-*`, `mb-*`, `d-*`, `fs-*`等）を活用可能
+  - **GitHub Flavored Markdownアラート（Callouts）**: 🚧 実装予定
+    - GFM拡張機能として、ブロック引用ベースのアラート構文をサポート
+    - **構文**: `> [!TYPE]`で始まるブロック引用
+    - **サポートするアラートタイプ（5種類）**:
+      - `[!NOTE]` - 補足情報 → Bootstrap `alert-info`（青）
+        - 例: `> [!NOTE]\n> スキミング時にも知っておくべき有用な情報`
+        - 出力: `<div class="alert alert-info" role="alert">スキミング時にも知っておくべき有用な情報</div>`
+      - `[!TIP]` - ヒント → Bootstrap `alert-success`（緑）
+        - 例: `> [!TIP]\n> より良く、より簡単に行うための役立つアドバイス`
+        - 出力: `<div class="alert alert-success" role="alert">より良く、より簡単に行うための役立つアドバイス</div>`
+      - `[!IMPORTANT]` - 重要 → Bootstrap `alert-primary`（青紫）
+        - 例: `> [!IMPORTANT]\n> 目標達成のために知っておくべき重要情報`
+        - 出力: `<div class="alert alert-primary" role="alert">目標達成のために知っておくべき重要情報</div>`
+      - `[!WARNING]` - 警告 → Bootstrap `alert-warning`（黄）
+        - 例: `> [!WARNING]\n> 問題を回避するために即座に注意が必要な緊急情報`
+        - 出力: `<div class="alert alert-warning" role="alert">問題を回避するために即座に注意が必要な緊急情報</div>`
+      - `[!CAUTION]` - 注意 → Bootstrap `alert-danger`（赤）
+        - 例: `> [!CAUTION]\n> 特定の行動のリスクや否定的な結果についての助言`
+        - 出力: `<div class="alert alert-danger" role="alert">特定の行動のリスクや否定的な結果についての助言</div>`
+    - **実装方針**:
+      - comrakのブロック引用処理後、カスタムポストプロセッサで`[!TYPE]`を検出
+      - `<blockquote>`タグを`<div class="alert alert-{type}">`に変換
+      - アイコン追加はフロントエンドJavaScript/CSSで対応（Bootstrap Iconsなど）
+      - アクセシビリティ: `role="alert"`属性を自動追加
+    - **既存LukiWiki引用構文との共存**:
+      - LukiWiki形式: `> ... <` （閉じタグあり）→ 通常のブロック引用として処理
+      - GFMアラート形式: `> [!TYPE]` → Bootstrapアラートに変換
+      - Markdown標準: `> text` （閉じタグなし、`[!TYPE]`なし）→ 通常のブロック引用
+    - **利点**:
+      - GFMとの互換性向上（GitHub README等との相互運用性）
+      - Bootstrapアラートを簡潔な構文で利用可能
+      - プラグインシステムよりもシンプル（`@alert(type){{ content }}`より短い）
+      - 標準的なMarkdown構文の拡張で学習コスト低い
   - **カスタムヘッダーID**: `# Header {#custom-id}` ✅
     - PukiWiki Advanceと同様の構文
     - ヘッダーに任意のIDを指定可能
