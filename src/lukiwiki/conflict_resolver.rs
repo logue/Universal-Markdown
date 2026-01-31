@@ -37,6 +37,75 @@ fn args_to_json(args: &str) -> String {
     format!("[{}]", parts.join(","))
 }
 
+/// Map font size value to Bootstrap class or inline style
+fn map_font_size_value(value: &str) -> (bool, String) {
+    // Check if value has unit (rem, em, px, etc.)
+    if value.contains("rem") || value.contains("em") || value.contains("px") {
+        return (false, value.to_string()); // Return as inline style
+    }
+
+    // Map to Bootstrap fs-* classes (unitless values)
+    let class = match value {
+        "2.5" => "fs-1",
+        "2" | "2.0" => "fs-2",
+        "1.75" => "fs-3",
+        "1.5" => "fs-4",
+        "1.25" => "fs-5",
+        "0.875" => "fs-6",
+        _ => return (false, format!("{}rem", value)), // Custom value as inline style
+    };
+
+    (true, class.to_string())
+}
+
+/// Map color value to Bootstrap class or inline style
+fn map_color_value(value: &str, is_background: bool) -> (bool, String) {
+    let trimmed = value.trim();
+
+    // Bootstrap theme colors
+    let bootstrap_colors = [
+        "primary",
+        "secondary",
+        "success",
+        "danger",
+        "warning",
+        "info",
+        "light",
+        "dark",
+        "body",
+        "body-secondary",
+        "body-tertiary",
+        "body-emphasis",
+        "primary-subtle",
+        "secondary-subtle",
+        "success-subtle",
+        "danger-subtle",
+        "warning-subtle",
+        "info-subtle",
+        "light-subtle",
+        "dark-subtle",
+        "primary-emphasis",
+        "secondary-emphasis",
+        "success-emphasis",
+        "danger-emphasis",
+        "warning-emphasis",
+        "info-emphasis",
+        "light-emphasis",
+        "dark-emphasis",
+    ];
+
+    // Check if it's a Bootstrap color
+    for color in &bootstrap_colors {
+        if trimmed == *color || trimmed.starts_with(&format!("{}-", color)) {
+            let prefix = if is_background { "bg" } else { "text" };
+            return (true, format!("{}-{}", prefix, trimmed));
+        }
+    }
+
+    // Otherwise, return as inline style value
+    (false, trimmed.to_string())
+}
+
 // Patterns that need special handling
 
 /// Regex to detect LukiWiki blockquote: > ... <
@@ -258,7 +327,61 @@ pub fn preprocess_conflicts(input: &str) -> (String, HeaderIdMap) {
         })
         .to_string();
 
+    // Process definition lists: :term|definition
+    result = process_definition_lists(&result);
+
     (result, header_map)
+}
+
+/// Process definition lists (:term|definition syntax)
+///
+/// Converts consecutive lines starting with `:term|definition` into
+/// a single `<dl>` element with `<dt>` and `<dd>` tags.
+fn process_definition_lists(input: &str) -> String {
+    let mut result = Vec::new();
+    let mut lines = input.lines().peekable();
+
+    while let Some(line) = lines.next() {
+        // Check if this line starts a definition list
+        if line.trim_start().starts_with(':') && line.contains('|') {
+            let mut dl_items = Vec::new();
+
+            // Collect consecutive definition list items
+            let mut current_line = line;
+            loop {
+                if let Some(stripped) = current_line.trim_start().strip_prefix(':') {
+                    if let Some((term, definition)) = stripped.split_once('|') {
+                        dl_items.push((term.trim().to_string(), definition.trim().to_string()));
+                    }
+                }
+
+                // Check if next line is also a definition list item
+                match lines.peek() {
+                    Some(next_line)
+                        if next_line.trim_start().starts_with(':') && next_line.contains('|') =>
+                    {
+                        current_line = lines.next().unwrap();
+                    }
+                    _ => break,
+                }
+            }
+
+            // Create marker for the definition list
+            if !dl_items.is_empty() {
+                use base64::{Engine as _, engine::general_purpose};
+                let items_json = serde_json::to_string(&dl_items).unwrap();
+                let encoded_items = general_purpose::STANDARD.encode(items_json.as_bytes());
+                result.push(format!(
+                    "{{{{DEFINITION_LIST:{}:DEFINITION_LIST}}}}",
+                    encoded_items
+                ));
+            }
+        } else {
+            result.push(line.to_string());
+        }
+    }
+
+    result.join("\n")
 }
 
 /// Post-process HTML to restore LukiWiki-specific syntax and apply custom header IDs
@@ -325,36 +448,83 @@ fn convert_inline_decoration_to_html(function: &str, args: &str, content: &str) 
             // &sub(text); → <sub>text</sub>
             Some(format!("<sub>{}</sub>", args))
         }
-        "color" => {
-            // &color(fg,bg){text}; → <span style="color: fg; background-color: bg">text</span>
-            let parts: Vec<&str> = args.split(',').collect();
-            let fg = parts.get(0).map(|s| s.trim()).unwrap_or("");
-            let bg = parts.get(1).map(|s| s.trim()).unwrap_or("");
+        "badge" => {
+            // &badge(type){content}; → <span class="badge bg-type">content</span>
+            // Support for badge-pill variants and links
+            let badge_class = if args.ends_with("-pill") {
+                let color = args.trim_end_matches("-pill");
+                format!("badge rounded-pill bg-{}", color)
+            } else {
+                format!("badge bg-{}", args)
+            };
 
-            let mut styles = Vec::new();
-            if !fg.is_empty() && fg != "inherit" {
-                styles.push(format!("color: {}", fg));
-            }
-            if !bg.is_empty() && bg != "inherit" {
-                styles.push(format!("background-color: {}", bg));
-            }
-
-            if styles.is_empty() {
-                Some(content.to_string())
+            // Check if content contains a Markdown link: [text](url)
+            let link_regex = Regex::new(r"\[([^\]]+)\]\(([^)]+)\)").unwrap();
+            if let Some(link_caps) = link_regex.captures(content) {
+                let text = link_caps.get(1).map_or("", |m| m.as_str());
+                let url = link_caps.get(2).map_or("", |m| m.as_str());
+                Some(format!(
+                    "<a href=\"{}\" class=\"{}\">{}</a>",
+                    url, badge_class, text
+                ))
             } else {
                 Some(format!(
-                    "<span style=\"{}\">{}</span>",
-                    styles.join("; "),
-                    content
+                    "<span class=\"{}\">{}</span>",
+                    badge_class, content
                 ))
             }
         }
+        "color" => {
+            // &color(fg,bg){text}; with Bootstrap support
+            let parts: Vec<&str> = args.split(',').collect();
+            let fg = parts.get(0).map_or("", |m| m.trim());
+            let bg = parts.get(1).map_or("", |m| m.trim());
+
+            let mut classes = Vec::new();
+            let mut styles = Vec::new();
+
+            if !fg.is_empty() && fg != "inherit" {
+                let (is_class, value) = map_color_value(fg, false);
+                if is_class {
+                    classes.push(value);
+                } else {
+                    styles.push(format!("color: {}", value));
+                }
+            }
+
+            if !bg.is_empty() && bg != "inherit" {
+                let (is_class, value) = map_color_value(bg, true);
+                if is_class {
+                    classes.push(value);
+                } else {
+                    styles.push(format!("background-color: {}", value));
+                }
+            }
+
+            if classes.is_empty() && styles.is_empty() {
+                Some(content.to_string())
+            } else {
+                let mut attrs = Vec::new();
+                if !classes.is_empty() {
+                    attrs.push(format!("class=\"{}\"", classes.join(" ")));
+                }
+                if !styles.is_empty() {
+                    attrs.push(format!("style=\"{}\"", styles.join("; ")));
+                }
+                Some(format!("<span {}>{}</span>", attrs.join(" "), content))
+            }
+        }
         "size" => {
-            // &size(rem){text}; → <span style="font-size: remrem">text</span>
-            Some(format!(
-                "<span style=\"font-size: {}rem\">{}</span>",
-                args, content
-            ))
+            // &size(value){text}; with Bootstrap support
+            let (is_class, value) = map_font_size_value(args);
+            if is_class {
+                Some(format!("<span class=\"{}\">{}</span>", value, content))
+            } else {
+                Some(format!(
+                    "<span style=\"font-size: {}\">{}</span>",
+                    value, content
+                ))
+            }
         }
         _ => None,
     }
@@ -569,7 +739,43 @@ pub fn postprocess_conflicts(html: &str, header_map: &HeaderIdMap) -> String {
         Regex::new(r#"<p>\s*(<div class="plugin-[^"]+"[^>]*/>\s*)\s*</p>"#).unwrap();
     result = wrapped_plugin_self.replace_all(&result, "$1").to_string();
 
-    // Apply Bootstrap default classes and GFM alerts
+    // Restore definition lists
+    let definition_list_marker =
+        Regex::new(r"\{\{DEFINITION_LIST:([^:]+):DEFINITION_LIST\}\}").unwrap();
+    result = definition_list_marker
+        .replace_all(&result, |caps: &Captures| {
+            use base64::{Engine as _, engine::general_purpose};
+            let encoded_items = &caps[1];
+
+            // Decode base64 to get JSON
+            let items_json = general_purpose::STANDARD
+                .decode(encoded_items.as_bytes())
+                .ok()
+                .and_then(|bytes| String::from_utf8(bytes).ok())
+                .unwrap_or_else(|| "[]".to_string());
+
+            // Parse JSON to get items
+            let items: Vec<(String, String)> =
+                serde_json::from_str(&items_json).unwrap_or_default();
+
+            if items.is_empty() {
+                return String::new();
+            }
+
+            let mut dl_html = String::from("<dl>");
+            for (term, definition) in items {
+                dl_html.push_str(&format!("<dt>{}</dt><dd>{}</dd>", term, definition));
+            }
+            dl_html.push_str("</dl>");
+            dl_html
+        })
+        .to_string();
+
+    // Remove wrapping <p> tags around definition lists
+    let wrapped_dl = Regex::new(r"<p>\s*(<dl>.*?</dl>)\s*</p>").unwrap();
+    result = wrapped_dl.replace_all(&result, "$1").to_string();
+
+    // Apply Bootstrap default classes, GFM alerts, and table cell alignment
     result = apply_bootstrap_enhancements(&result);
 
     result
@@ -625,7 +831,75 @@ fn apply_bootstrap_enhancements(html: &str) -> String {
         })
         .to_string();
 
+    // Process table cell vertical alignment prefixes
+    result = process_table_cell_alignment(&result);
+
     result
+}
+
+/// Process table cell alignment prefixes (TOP:, MIDDLE:, BOTTOM:, BASELINE:)
+///
+/// Detects alignment prefixes in table cells and adds Bootstrap alignment classes.
+fn process_table_cell_alignment(html: &str) -> String {
+    let mut result = html.to_string();
+
+    // Process <td> tags
+    let td_pattern = Regex::new(r"<td([^>]*)>(.*?)</td>").unwrap();
+    result = td_pattern
+        .replace_all(&result, |caps: &Captures| {
+            let existing_attrs = &caps[1];
+            let content = &caps[2];
+            process_cell_content("td", existing_attrs, content)
+        })
+        .to_string();
+
+    // Process <th> tags
+    let th_pattern = Regex::new(r"<th([^>]*)>(.*?)</th>").unwrap();
+    result = th_pattern
+        .replace_all(&result, |caps: &Captures| {
+            let existing_attrs = &caps[1];
+            let content = &caps[2];
+            process_cell_content("th", existing_attrs, content)
+        })
+        .to_string();
+
+    result
+}
+
+/// Process individual cell content for alignment
+fn process_cell_content(tag: &str, existing_attrs: &str, content: &str) -> String {
+    // Check for vertical alignment prefixes
+    let (align_class, remaining_content) =
+        if let Some(stripped) = content.trim_start().strip_prefix("TOP:") {
+            ("align-top", stripped.trim_start())
+        } else if let Some(stripped) = content.trim_start().strip_prefix("MIDDLE:") {
+            ("align-middle", stripped.trim_start())
+        } else if let Some(stripped) = content.trim_start().strip_prefix("BOTTOM:") {
+            ("align-bottom", stripped.trim_start())
+        } else if let Some(stripped) = content.trim_start().strip_prefix("BASELINE:") {
+            ("align-baseline", stripped.trim_start())
+        } else {
+            ("", content)
+        };
+
+    if align_class.is_empty() {
+        // No alignment prefix, return original
+        format!("<{}{}>{}</{}>", tag, existing_attrs, content, tag)
+    } else {
+        // Add alignment class
+        if existing_attrs.contains("class=") {
+            // Append to existing class attribute
+            let new_attrs =
+                existing_attrs.replace("class=\"", &format!("class=\"{} ", align_class));
+            format!("<{}{}>{}</{}>", tag, new_attrs, remaining_content, tag)
+        } else {
+            // Add new class attribute
+            format!(
+                r#"<{} class="{}"{}>{}</{}>"#,
+                tag, align_class, existing_attrs, remaining_content, tag
+            )
+        }
+    }
 }
 
 /// Check if input contains potentially ambiguous syntax
@@ -809,5 +1083,47 @@ mod tests {
         let output = postprocess_conflicts(input, &header_map);
         assert!(output.contains(r#"<blockquote class="lukiwiki">"#));
         assert!(!output.contains(r#"class="blockquote""#));
+    }
+
+    #[test]
+    fn test_definition_list() {
+        let input = ":Term 1|Definition 1\n:Term 2|Definition 2";
+        let (preprocessed, _) = preprocess_conflicts(input);
+        assert!(preprocessed.contains("{{DEFINITION_LIST:"));
+    }
+
+    #[test]
+    fn test_definition_list_html_output() {
+        let header_map = HeaderIdMap::new();
+        let input = ":HTML|HyperText Markup Language\n:CSS|Cascading Style Sheets";
+        let (preprocessed, _) = preprocess_conflicts(input);
+        let output = postprocess_conflicts(&preprocessed, &header_map);
+        assert!(output.contains("<dl>"));
+        assert!(output.contains("<dt>HTML</dt>"));
+        assert!(output.contains("<dd>HyperText Markup Language</dd>"));
+        assert!(output.contains("<dt>CSS</dt>"));
+        assert!(output.contains("<dd>Cascading Style Sheets</dd>"));
+        assert!(output.contains("</dl>"));
+    }
+
+    #[test]
+    fn test_table_cell_vertical_alignment() {
+        let header_map = HeaderIdMap::new();
+        let input =
+            r#"<table class="table"><tr><td>TOP: Cell1</td><td>MIDDLE: Cell2</td></tr></table>"#;
+        let output = postprocess_conflicts(input, &header_map);
+        assert!(output.contains(r#"class="align-top""#));
+        assert!(output.contains("Cell1"));
+        assert!(output.contains(r#"class="align-middle""#));
+        assert!(output.contains("Cell2"));
+    }
+
+    #[test]
+    fn test_table_cell_multiple_alignments() {
+        let header_map = HeaderIdMap::new();
+        let input = r#"<table><tr><th>BASELINE: Header</th><td>BOTTOM: Data</td></tr></table>"#;
+        let output = postprocess_conflicts(input, &header_map);
+        assert!(output.contains(r#"class="align-baseline""#));
+        assert!(output.contains(r#"class="align-bottom""#));
     }
 }

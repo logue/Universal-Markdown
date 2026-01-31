@@ -142,18 +142,14 @@ fn map_color(value: &str, is_background: bool) -> (bool, String) {
 
 /// Map badge type to Bootstrap badge classes
 fn map_badge_type(badge_type: &str) -> String {
-    let mut classes = vec!["badge"];
-
     // Check if it's a pill badge
     if badge_type.ends_with("-pill") {
-        classes.push("rounded-pill");
         let color = badge_type.trim_end_matches("-pill");
-        classes.push("bg-");
-        return format!("{}{}", classes.join(" "), color);
+        format!("badge rounded-pill bg-{}", color)
+    } else {
+        // Regular badge
+        format!("badge bg-{}", badge_type)
     }
-
-    // Regular badge
-    format!("badge bg-{}", badge_type)
 }
 
 /// Apply inline decoration functions to HTML
