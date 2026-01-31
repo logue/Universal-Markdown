@@ -3,7 +3,7 @@
 **プロジェクト概要**: Markdown上位互換を目指すLukiWikiのパース処理をRustで実装する。CommonMark仕様テストを合理的にパス(75%+目標)しつつ、レガシー構文を保持する。
 
 **作成日**: 2026年1月23日
-**最終更新**: 2026年1月30日
+**最終更新**: 2026年1月31日
 **Rustバージョン**: 1.93 (最新安定版)
 **ライセンス**: MIT
 
@@ -87,13 +87,13 @@
     - `*text*` → `<em>text</em>` (セマンティックな強調)
     - 注: 表示は同じだが、意味合いが異なる（視覚的 vs セマンティック）
   - **ブロック装飾プレフィックス** (行頭に配置): ✅
-    - **Bootstrap固定スタイルシステム**: 🚧 実装予定
+    - **Bootstrap固定スタイルシステム**: ✅ **完了**
       - デフォルトでBootstrap 5（Core UI互換）クラスを使用
       - text-align系はBootstrapクラスに完全置換
       - color/backgroundは任意色対応のためインラインスタイル維持
       - font-sizeはハイブリッド方式（単位なし→Bootstrapクラス、単位あり→インラインスタイル）
-    - `COLOR(fg,bg): text` - 前景色・背景色指定（空白時は`inherit`）
-      - **⚠️ 実装方針検討中**: ダークモード対応のため以下の選択肢を検討
+    - `COLOR(fg,bg): text` - 前景色・背景色指定（空白時は`inherit`） ✅
+      - **✅ 実装完了**: Bootstrap変数のみサポート（案A採用）
       - **Bootstrap 5.3で利用可能な色（完全リスト）**:
         - **テーマカラー（8色）**: `primary`, `secondary`, `success`, `danger`, `warning`, `info`, `light`, `dark`
         - **基本カラー（14色）**: `blue`, `indigo`, `purple`, `pink`, `red`, `orange`, `yellow`, `green`, `teal`, `cyan`, `black`, `white`, `gray`, `gray-dark`
@@ -113,15 +113,15 @@
         - Wikiはドキュメント中心で、デザイン自由度より読みやすさ優先
         - テーブルやコールアウトでの色分けは十分対応可能
         - ダークモード対応のメリットが大きい
-      - **推奨実装: 案A（Bootstrap変数のみ）を採用**
+      - **✅ 採用された実装: 案A（Bootstrap変数のみ）**
         - 前景色: `text-{color}`クラス（例: `text-primary`, `text-danger-emphasis`）
         - 背景色: `bg-{color}`クラス（例: `bg-warning`, `bg-success-subtle`）
         - 例: `COLOR(danger): エラー` → `<p class="text-danger">エラー</p>`
         - 例: `COLOR(,warning-subtle): 警告背景` → `<p class="bg-warning-subtle">警告背景</p>`
         - 例: `COLOR(primary,primary-subtle): 強調` → `<p class="text-primary bg-primary-subtle">強調</p>`
-      - 現在の実装: 案B（任意色、インラインスタイル）
-      - 移行コスト: 既存利用者なしのため無視可能
-    - `SIZE(value): text` - フォントサイズ指定
+        - カスタムカラー（#FF0000など）: インラインスタイルとして出力
+      - Bootstrap以外の色値はインラインスタイルにフォールバック
+    - `SIZE(value): text` - フォントサイズ指定 ✅
       - **単位なし（数値のみ）**: Bootstrapクラスにマッピング
         - 例: `SIZE(2.5): 最大` → `<p class="fs-1">最大</p>` (2.5rem)
         - 例: `SIZE(2): 大きい` → `<p class="fs-2">大きい</p>` (2rem)
@@ -135,9 +135,9 @@
         - 例: `SIZE(2em): 2em` → `<p style="font-size: 2em">2em</p>`
         - 例: `SIZE(16px): 16px` → `<p style="font-size: 16px">16px</p>`
       - 原則: LukiWikiはrem単位を標準とする
-    - `RIGHT: text` - 右寄せ → `<p class="text-end">text</p>` (Bootstrap)
-    - `CENTER: text` - 中央寄せ → `<p class="text-center">text</p>` (Bootstrap)
-    - `LEFT: text` - 左寄せ → `<p class="text-start">text</p>` (Bootstrap)
+    - `RIGHT: text` - 右寄せ → `<p class="text-end">text</p>` (Bootstrap) ✅
+    - `CENTER: text` - 中央寄せ → `<p class="text-center">text</p>` (Bootstrap) ✅
+    - `LEFT: text` - 左寄せ → `<p class="text-start">text</p>` (Bootstrap) ✅
     - `JUSTIFY: text` - 両端揃え/ブロック幅指定 🚧 実装予定
       - **用途1: テキストの両端揃え（段落）**
         - 例: `JUSTIFY: この文章は両端揃えで表示されます。` → `<p class="text-justify">この文章は両端揃えで表示されます。</p>`
@@ -165,7 +165,7 @@
     - `TRUNCATE: text` - テキスト省略 → `<p class="text-truncate">text</p>` (Bootstrap) 🚧 実装予定
       - 長いテキストを`...`で省略（`overflow: hidden; text-overflow: ellipsis; white-space: nowrap`）
       - 幅指定はユーザーがCSSで指定する前提（テーブルセルでは自動適用）
-    - **複合構文**: 複数のプレフィックスを組み合わせ可能 🚧 実装予定
+    - **複合構文**: 複数のプレフィックスを組み合わせ可能 ✅ **完了**
       - **必須機能**: テーブルセル装飾で複数スタイルの同時適用が必要
       - **構文順序**: `SIZE(...): COLOR(...): TRUNCATE: JUSTIFY/RIGHT/CENTER/LEFT: テキスト`
         - サイズ → 色 → 省略 → 配置の順序を推奨（順不同でも動作）
@@ -186,22 +186,22 @@
       - テーブルのセル装飾で特に有用
     - [src/lukiwiki/block_decorations.rs](src/lukiwiki/block_decorations.rs)実装完了（Bootstrap対応は未実装）
   - **インライン装飾関数** (プラグインのインライン型と同じ表記): ✅
-    - `&color(fg,bg){text};` - 文字色・背景色指定（空白時は`inherit`）
+    - `&color(fg,bg){text};` - 文字色・背景色指定（空白時は`inherit`） ✅
       - **注**: ブロック版`COLOR()`と同じ実装方針を採用（上記参照）
-      - **推奨実装: Bootstrap変数のみ**
+      - **✅ 実装完了: Bootstrap変数のみ**
         - 例: `&color(danger){エラー};` → `<span class="text-danger">エラー</span>`
         - 例: `&color(,warning-subtle){警告};` → `<span class="bg-warning-subtle">警告</span>`
         - 例: `&color(primary,primary-subtle){強調};` → `<span class="text-primary bg-primary-subtle">強調</span>`
       - 現在の実装: 任意色、インラインスタイル
-    - `&size(value){text};` - フォントサイズ指定
-      - **単位なし（数値のみ）**: Bootstrapクラスにマッピング 🚧 実装予定
+    - `&size(value){text};` - フォントサイズ指定 ✅
+      - **単位なし（数値のみ）**: Bootstrapクラスにマッピング ✅
         - 例: `&size(2){大きい};` → `<span class="fs-2">大きい</span>` (2rem)
         - 例: `&size(1.5){やや大};` → `<span class="fs-4">やや大</span>` (1.5rem)
         - マッピング外: インラインスタイル（例: `&size(1.8){text};` → `style="font-size: 1.8rem"`）
       - **単位あり**: インラインスタイル出力
         - 例: `&size(1.5rem){text};` → `<span style="font-size: 1.5rem">text</span>`
         - 例: `&size(2em){text};` → `<span style="font-size: 2em">text</span>`
-    - `&badge(type){text};` - Bootstrapバッジ表示 🚧 実装予定
+    - `&badge(type){text};` - Bootstrapバッジ表示 ✅ **完了**
       - **Bootstrap Badge**: 小さなカウント表示やラベル表示用コンポーネント
       - **サポートするバッジタイプ（8種類）**:
         - `primary`, `secondary`, `success`, `danger`, `warning`, `info`, `light`, `dark`
@@ -210,7 +210,7 @@
         - 例: `&badge(success){4};` → `<span class="badge bg-success">4</span>` (カウント表示)
       - **ピルバッジ（丸みのある形状）**: `&badge(primary-pill){text};`
         - 例: `&badge(success-pill){Active};` → `<span class="badge rounded-pill bg-success">Active</span>`
-      - **リンク複合パターン**: ⚠️ 検討中
+      - **リンク複合パターン**: ✅ **実装完了**
         - **問題**: バッジがリンクになる場合の構文をどうするか
         - **案A: Markdown構文のネスト（採用予定）**: `&badge(primary){[New](/new)};`
           - メリット: Markdown標準構文を活用、学習コスト低い
@@ -256,7 +256,7 @@
                 }
                 ```
 
-          - **採用方針**: **アプローチ2（直接リンク検出）**を採用
+          - **✅ 採用方針**: **アプローチ2（直接リンク検出）**を採用・実装完了
             - 理由: 処理が軽量、実装が明確、後処理不要
             - 処理負荷: 最小限（badgeパターンが検出された時のみ、content部分に対してリンク正規表現を1回実行）
             - バッジ+リンクは頻繁に使われないため、全体のパフォーマンスへの影響は軽微
@@ -364,7 +364,7 @@
     - フロントエンドJavaScriptでBootstrapコンポーネントを動的追加
     - 例: `<div class="plugin-alert" data-args='["info"]'>` → JavaScript側で`alert alert-info`クラス追加
     - Bootstrap 5（Core UI互換）のユーティリティクラス（`text-*`, `mb-*`, `d-*`, `fs-*`等）を活用可能
-  - **GitHub Flavored Markdownアラート（Callouts）**: 🚧 実装予定
+  - **GitHub Flavored Markdownアラート（Callouts）**: ✅ **完了** (注: sanitization制約あり)
     - GFM拡張機能として、ブロック引用ベースのアラート構文をサポート
     - **構文**: `> [!TYPE]`で始まるブロック引用
     - **サポートするアラートタイプ（5種類）**:

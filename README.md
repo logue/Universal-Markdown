@@ -6,6 +6,7 @@ LukiWikiのWikiパーサーをRustで再実装したプロジェクトです。C
 
 - **CommonMark準拠**: 標準Markdown構文の高い互換性
 - **LukiWiki構文サポート**: レガシーPHP実装との互換性
+- **Bootstrap 5統合**: デフォルトでBootstrapクラスを生成（Core UI互換）
 - **フロントマターサポート**: YAML/TOML形式のメタデータ
 - **フットノート**: 標準的な脚注構文のサポート
 - **セキュリティ**: HTMLサニタイゼーションによるXSS対策
@@ -87,6 +88,105 @@ if let Some(footnotes) = result.footnotes {
 ```
 
 フットノートは`<section class="footnotes">`として生成され、適切にスタイリングできます。
+
+## Bootstrap 5統合
+
+LukiWiki-rsは、デフォルトでBootstrap 5のクラスを生成します。これにより、CoreUIなどのBootstrapベースのフレームワークとシームレスに統合できます。
+
+### デフォルトクラス
+
+特定のHTML要素には、自動的にBootstrapクラスが適用されます：
+
+- **テーブル**: `<table class="table">`
+- **ブロック引用**: `<blockquote class="blockquote">` (Markdown標準) / `<blockquote class="lukiwiki">` (LukiWiki形式)
+
+### ブロック装飾プレフィックス
+
+行の先頭にプレフィックスを付けることで、Bootstrapクラスやスタイルを適用できます：
+
+```markdown
+COLOR(primary): プライマリカラーのテキスト
+SIZE(2): 大きいテキスト (fs-2)
+CENTER: 中央寄せのテキスト
+SIZE(1.5): COLOR(danger): RIGHT: 複合スタイル
+```
+
+#### サポートされるプレフィックス
+
+- **COLOR(value)**: Bootstrapカラークラス (`text-{color}`) または任意の色値
+  - Bootstrap色: `primary`, `secondary`, `success`, `danger`, `warning`, `info`, `light`, `dark`
+  - 例: `COLOR(primary): テキスト` → `<p class="text-primary">テキスト</p>`
+  - カスタム色: `COLOR(#FF0000): 赤` → `<p style="color: #FF0000">赤</p>`
+
+- **SIZE(value)**: Bootstrapフォントサイズクラス (`fs-{1-6}`) または任意のサイズ
+  - Bootstrap: `2.5` → `fs-1`, `2` → `fs-2`, `1.75` → `fs-3`, `1.5` → `fs-4`, `1.25` → `fs-5`, `0.875` → `fs-6`
+  - 例: `SIZE(1.5): テキスト` → `<p class="fs-4">テキスト</p>`
+  - カスタム: `SIZE(3rem): 大きい` → `<p style="font-size: 3rem">大きい</p>`
+
+- **配置**: `LEFT:`, `CENTER:`, `RIGHT:` → `text-start`, `text-center`, `text-end`
+
+- **複合**: 複数のプレフィックスを組み合わせ可能
+  - 例: `SIZE(2): COLOR(primary): CENTER: テキスト`
+
+### インライン装飾関数
+
+インラインでBootstrapクラスを適用できます：
+
+```markdown
+&color(primary){重要なテキスト};
+&size(1.5){やや大きいテキスト};
+&badge(danger){Error};
+&badge(success-pill){Active};
+```
+
+#### サポートされる関数
+
+- **&color(fg,bg){text};**: テキスト色・背景色
+  - 例: `&color(primary){テキスト};` → `<span class="text-primary">テキスト</span>`
+  - 例: `&color(primary,primary-subtle){テキスト};` → `<span class="text-primary bg-primary-subtle">テキスト</span>`
+
+- **&size(value){text};**: フォントサイズ
+  - 例: `&size(1.5){テキスト};` → `<span class="fs-4">テキスト</span>`
+
+- **&badge(type){text};**: Bootstrapバッジ
+  - 基本: `&badge(primary){New};` → `<span class="badge bg-primary">New</span>`
+  - Pill: `&badge(success-pill){Active};` → `<span class="badge rounded-pill bg-success">Active</span>`
+  - リンク: `&badge(danger){[Error](/error)};` → `<a href="/error" class="badge bg-danger">Error</a>`
+
+### テーブルセル垂直配置
+
+テーブルセル内でBootstrap配置クラスを使用できます：
+
+```markdown
+| TOP: ヘッダー | MIDDLE: データ |
+| ------------- | -------------- |
+| BOTTOM: A     | BASELINE: B    |
+```
+
+- `TOP:` → `align-top`
+- `MIDDLE:` → `align-middle`
+- `BOTTOM:` → `align-bottom`
+- `BASELINE:` → `align-baseline`
+
+### Definition Lists
+
+用語と定義をセマンティックにマークアップできます：
+
+```markdown
+:HTML|HyperText Markup Language
+:CSS|Cascading Style Sheets
+```
+
+出力:
+
+```html
+<dl>
+  <dt>HTML</dt>
+  <dd>HyperText Markup Language</dd>
+  <dt>CSS</dt>
+  <dd>Cascading Style Sheets</dd>
+</dl>
+```
 
 ## プラグインシステム
 
