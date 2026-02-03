@@ -253,32 +253,80 @@
         - 例: `SIZE(16px): 16px` → `<p style="font-size: 16px">16px</p>`
       - 原則: UMDはrem単位を標準とする
     - `RIGHT: text` - 右寄せ → `<p class="text-end">text</p>` (Bootstrap) ✅
+      - **用途1: テキストの右寄せ（段落）**
+        - 例: `RIGHT: この文章は右寄せで表示されます。` → `<p class="text-end">この文章は右寄せで表示されます。</p>`
+      - **用途2: UMDテーブルの配置**
+        - UMDテーブル（区切り行なし）の前に`RIGHT:`がある場合、テーブル全体を右寄せに配置
+        - 例:
+          ```
+          RIGHT:
+          | Header1 | Header2 |
+          | Cell1   | Cell2   |
+          ```
+          → `<table class="table umd-table w-auto ms-auto me-0">...</table>`
+        - `w-auto`: テーブルをコンテンツ幅にする（Bootstrapデフォルトの100%を上書き）
+        - `ms-auto me-0`: 左マージンを自動、右マージンを0にして右寄せ
+        - 用途: テーブルをコンテンツ幅のまま右端に配置
+        - 注: Markdown標準テーブル（区切り行あり）ではサポートしない
     - `CENTER: text` - 中央寄せ → `<p class="text-center">text</p>` (Bootstrap) ✅
+      - **用途1: テキストの中央寄せ（段落）**
+        - 例: `CENTER: この文章は中央寄せで表示されます。` → `<p class="text-center">この文章は中央寄せで表示されます。</p>`
+      - **用途2: UMDテーブルの配置**
+        - UMDテーブル（区切り行なし）の前に`CENTER:`がある場合、テーブル全体を中央に配置
+        - 例:
+          ```
+          CENTER:
+          | Header1 | Header2 |
+          | Cell1   | Cell2   |
+          ```
+          → `<table class="table umd-table w-auto mx-auto">...</table>`
+        - `w-auto`: テーブルをコンテンツ幅にする
+        - `mx-auto`: 左右マージンを自動にして中央寄せ
+        - 用途: テーブルをコンテンツ幅のまま中央に配置
+        - 注: Markdown標準テーブル（区切り行あり）ではサポートしない
     - `LEFT: text` - 左寄せ → `<p class="text-start">text</p>` (Bootstrap) ✅
+      - **用途1: テキストの左寄せ（段落）**
+        - 例: `LEFT: この文章は左寄せで表示されます。` → `<p class="text-start">この文章は左寄せで表示されます。</p>`
+      - **用途2: UMDテーブルの配置**
+        - UMDテーブル（区切り行なし）の前に`LEFT:`がある場合、テーブル全体を左寄せに配置（明示的指定）
+        - 例:
+          ```
+          LEFT:
+          | Header1 | Header2 |
+          | Cell1   | Cell2   |
+          ```
+          → `<table class="table umd-table w-auto">...</table>`
+        - `w-auto`: テーブルをコンテンツ幅にする（明示的に左寄せを指定）
+        - 用途: 他の配置指定と統一的な構文を提供
+        - 注: Markdown標準テーブル（区切り行あり）ではサポートしない
     - `JUSTIFY: text` - 両端揃え/ブロック幅指定 🚧 実装予定
       - **用途1: テキストの両端揃え（段落）**
         - 例: `JUSTIFY: この文章は両端揃えで表示されます。` → `<p class="text-justify">この文章は両端揃えで表示されます。</p>`
         - 注: Bootstrap 5では`text-justify`が非推奨だが、UMDでは明示的に対応
         - ブラウザ対応: モダンブラウザでは`text-align: justify`で両端揃えが可能
-      - **用途2: ブロック要素の幅指定（テーブル等）**
-        - テーブル行の前に`JUSTIFY:`がある場合、テーブル全体の幅を100%に設定
+      - **用途2: UMDテーブルの幅指定**
+        - UMDテーブル（区切り行なし）の前に`JUSTIFY:`がある場合、テーブル全体の幅を100%に維持（デフォルト動作）
         - 例:
           ```
           JUSTIFY:
           | Header1 | Header2 |
-          |---------|---------|
           | Cell1   | Cell2   |
           ```
-          → `<table class="table w-100">...</table>` （デフォルトで`table`クラスが追加される）
-        - 用途: `CENTER:`でテーブル自体を中央寄せするのではなく、テーブルを画面幅いっぱいに広げた上でセル内のテキストを配置
-        - 区別:
-          - `CENTER: | Header |` → テーブル自体を中央寄せ（テーブルはコンテンツ幅）
-          - `JUSTIFY: | Header |` → テーブルを100%幅に拡張（テーブルが画面幅いっぱい）
-          - `JUSTIFY: CENTER: | Header |` → 100%幅のテーブルで、セル内テキストを中央揃え
+          → `<table class="table umd-table">...</table>`
+        - Bootstrapの`table`クラスはデフォルトで`width: 100%`のため、`w-100`クラスは不要
+        - 用途: テーブルを画面幅いっぱいに広げる（デフォルト動作を明示）
+        - 注: Markdown標準テーブル（区切り行あり）ではサポートしない
+      - **UMDテーブルの配置まとめ**:
+        - `LEFT: | Header |` → `w-auto`（コンテンツ幅、左寄せ）
+        - `CENTER: | Header |` → `w-auto mx-auto`（コンテンツ幅、中央寄せ）
+        - `RIGHT: | Header |` → `w-auto ms-auto me-0`（コンテンツ幅、右寄せ）
+        - `JUSTIFY: | Header |` → デフォルト（100%幅）
+        - `JUSTIFY: CENTER: | Header |` → 100%幅のテーブルで、セル内テキストを中央揃え
       - **実装方針**:
         - 段落に対しては`text-justify`クラスを適用
-        - テーブルに対しては`w-100`クラス（Bootstrap）または`style="width: 100%"`を適用
-        - テーブル検出: `JUSTIFY:`の直後の行が`|`で始まる場合、次のブロック（テーブル）に適用
+        - UMDテーブル（区切り行なし）にのみ配置プレフィックスを適用
+        - Markdown標準テーブル（区切り行あり）は配置プレフィックスをサポートしない（comrakの出力をそのまま使用）
+        - テーブル検出: プレフィックスの直後の行が`|`で始まり、かつ区切り行がない場合、次のブロック（UMDテーブル）に適用
     - `TRUNCATE: text` - テキスト省略 → `<p class="text-truncate">text</p>` (Bootstrap) 🚧 実装予定
       - 長いテキストを`...`で省略（`overflow: hidden; text-overflow: ellipsis; white-space: nowrap`）
       - 幅指定はユーザーがCSSで指定する前提（テーブルセルでは自動適用）
@@ -481,12 +529,12 @@
     - [src/extensions/inline_decorations.rs](src/extensions/inline_decorations.rs)実装完了
 
   - **取り消し線構文の分離**: ✅
-    - **LukiWiki**: `%%text%%` → `<s>text</s>` (視覚的な取り消し線)
+    - **UMD**: `%%text%%` → `<s>text</s>` (視覚的な取り消し線)
     - **Markdown/GFM**: `~~text~~` → `<del>text</del>` (削除を意味する取り消し線)
     - 注: 両方共取り消し線として表示されるが、HTMLの意味合いが異なる
       - `<s>`: 正確でなくなった内容や関連性のなくなった内容
       - `<del>`: ドキュメントから削除された内容
-    - 実装: [src/extensions/inline_decorations.rs](src/extensions/inline_decorations.rs)でLukiWiki形式を処理後、comrakでMarkdown形式を処理
+    - 実装: [src/extensions/inline_decorations.rs](src/extensions/inline_decorations.rs)でUMD形式を処理後、comrakでMarkdown形式を処理
   - **プラグインシステム** (拡張可能なWiki機能): ✅
     - **インライン型（完全形）**: `&function(args){content};`
       - パース出力: `<span class="plugin-function" data-args='["arg1","arg2"]'>content</span>`
@@ -578,6 +626,21 @@
     - PukiWiki Advanceと同様の構文
     - ヘッダーに任意のIDを指定可能
     - 指定がない場合は`heading-1`, `heading-2`と自動採番
+    - **HTML出力方式の検討**:
+      - **現在の実装（推測）**: `<h1><a id="custom-id">Header</a></h1>`
+        - アンカーリンクのための`<a>`タグをヘッダー内に配置
+        - HTML4/XHTML時代の古い方式
+      - **提案: `id`属性方式（推奨）**: `<h1 id="custom-id">Header</h1>`
+        - HTML5標準の方式（よりシンプル、セマンティック）
+        - `<a>`タグ不要で、ヘッダー自体にアンカー機能を持たせる
+        - メリット:
+          - HTMLがシンプルで読みやすい
+          - セマンティック（見出しは見出しタグのみで表現）
+          - CSSセレクタが単純化（`:target`疑似クラスで直接スタイリング可能）
+          - JavaScriptでのDOM操作が容易（`document.getElementById('custom-id')`で直接取得）
+          - アクセシビリティ向上（スクリーンリーダーが見出しとして正確に認識）
+        - ブラウザサポート: HTML5対応ブラウザで完全サポート（IE8以降）
+      - **推奨**: `id`属性方式を採用
     - **メリット**:
       - URLセーフ（マルチバイト文字によるエンコード問題を回避）
       - 短いURL（SNSでの共有に最適）
@@ -597,15 +660,34 @@
     - 本文から分離され、`ParseResult.footnotes`で取得可能
     - comrakの`extension.footnotes`を有効化
     - [examples/test_footnotes.rs](examples/test_footnotes.rs)でデモンストレーション
-  - **テーブル**: Markdown標準形式 + LukiWiki拡張 🚧 実装予定
-    - **基本構文**: Markdown標準のテーブル構文（GFM準拠）
+  - **テーブル**: Markdown標準形式 + UMD拡張 🚧 実装予定
+    - **Markdown標準テーブル（ソート可能）**: GFM準拠、セル連結不可
+
       ```
       | Header1 | Header2 |
       |---------|---------|
       | Cell1   | Cell2   |
       ```
-    - **デフォルトクラス**: `<table class="table">` （Bootstrap基本クラスを自動付与）
-    - **セル連結（LukiWiki拡張）**: 🚧 実装予定
+
+      - **用途**: ソート可能なシンプルなテーブル（データテーブル）
+      - **デフォルトクラス**: `<table class="table">` （Bootstrap基本クラスを自動付与）
+      - **特徴**: セル連結が不可能な仕様を活かして、ソート機能（JavaScript）との互換性を確保
+      - **JavaScript連携**: フロントエンド側でソート機能を実装可能（各列が独立しているため）
+      - **検出方法**: 2行目が`|`, `:`, `-`のみで構成される場合、Markdown標準テーブルと判定
+
+    - **UMDテーブル（セル連結対応）**: セル連結可能な拡張テーブル
+
+      ```
+      | Header1 |> | Header3 |
+      | Cell1   | Cell2   |
+      ```
+
+      - **用途**: 複雑なレイアウトが必要なテーブル（プレゼンテーション資料等）
+      - **デフォルトクラス**: `<table class="table umd-table">` （`umd-table`クラスで識別）
+      - **特徴**: `|>`（colspan）と`|^`（rowspan）による柔軟なセル連結
+      - **検出方法**: `|>`または`|^`が含まれる場合、UMDテーブルと判定
+
+    - **セル連結（UMD拡張）**: 🚧 実装予定
       - **横方向連結（colspan）**: `|>` を使用
         - セル内容の後に `|>` を配置すると、右のセルと連結
         - 例: `| Header1 |> |` → `<th colspan="2">Header1</th>`
@@ -613,37 +695,37 @@
         - 連結される側のセルは空またはスペースのみ
       - **縦方向連結（rowspan）**: `|^` を使用
         - セル内に `|^` のみを配置すると、上のセルと連結
-        - 例:
+        - 例（UMD拡張構文）:
           ```
           | Header1 | Header2 |
-          |---------|---------|
           | Cell1   | Cell2   |
           | |^      | Cell3   |
           ```
           → `Cell1`が2行分連結（`<td rowspan="2">Cell1</td>`）
         - 連結される側のセルは `|^` のみ
+        - 注: 区切り行（`|---|`）がないため、Markdown標準テーブルではなくUMD拡張テーブルとして処理
       - **複合連結**: colspan と rowspan の組み合わせ
-        - 例:
+        - 例（UMD拡張構文）:
           ```
           | Header1 |> | Header3 |
-          |---------|--|---------|
           | Cell1   |> | Cell3   |
           | |^      |^ | Cell4   |
           ```
           → `Cell1`が2x2のセル連結（`<td colspan="2" rowspan="2">Cell1</td>`）
+        - 注: `|>`や`|^`の存在により、UMDテーブルと自動判別
       - **実装方針**: ✅
         - [src/extensions/table/umd/](src/extensions/table/umd/)で完全実装
         - テーブルをパースし、`|>`と`|^`を検出
         - colspan: 連続する`|>`をカウントし、`colspan`属性を追加
         - rowspan: 同じ列の`|^`をカウントし、`rowspan`属性を追加
         - 連結されるセルは出力しない（HTMLの仕様に従う）
-        - GFMとLukiWikiを自動判別（2行目が`|`, `:`, `-`のみならGFM、それ以外はLukiWiki）
-        - LukiWikiテーブルに`data-lukiwiki="true"`属性を付与して識別
+        - Markdown標準とUMDを自動判別（2行目が`|`, `:`, `-`のみならMarkdown標準、`|>`や`|^`があればUMD）
+        - UMDテーブルに`umd-table`クラスを付与して識別
       - **制約**: ✅
         - セル連結はテーブルヘッダー（`<th>`）とボディ（`<td>`）の両方で使用可能
         - 不正な連結（例: 範囲外への連結）はエラーとせず、通常のセルとして扱う
-        - Markdown標準テーブルとの互換性を維持（`|>`や`|^`がない場合は通常動作）
-        - GFMテーブルはcomrakが処理、UMDテーブルは独自パーサーが処理
+        - Markdown標準テーブル（ソート可能）との互換性を維持（`|>`や`|^`がない場合は通常動作）
+        - Markdown標準テーブルはcomrakが処理、UMDテーブルは独自パーサーが処理
     - **テーブルバリエーション**: 🔮 今後の課題
       - 色（`table-striped`, `table-hover`, `table-dark`など）
       - ボーダー（`table-bordered`, `table-borderless`）
@@ -678,6 +760,7 @@
     - **テーブル幅指定**: `JUSTIFY:`でテーブル全体を100%幅に設定（上記参照）
     - **レスポンシブ対応**: プラグインで実装予定
       - 例: `@table(responsive){{ ... }}` → `<div class="table-responsive"><table>...</table></div>`
+
   - **ブロック引用**: UMD形式 + Markdown標準形式 ✅
     - **UMD形式**: `> ... <` （閉じタグあり）
     - **Markdown形式**: `> text` （行頭プレフィックス）
@@ -791,7 +874,7 @@
 
 ### Step 4: 構文競合の解決 ✅ 完了
 
-**目的**: MarkdownとLukiWiki構文の衝突を適切に処理
+**目的**: MarkdownとUMD構文の衝突を適切に処理
 
 **ステータス**: ✅ **完了** (2025年版)
 
@@ -799,12 +882,12 @@
 
 - [src/extensions/conflict_resolver.rs](src/extensions/conflict_resolver.rs)を作成 ✅
 - マーカーベース前処理システム実装 ✅
-  - プリプロセス: LukiWiki構文を`{{MARKER:...:MARKER}}`形式で保護
+  - プリプロセス: UMD構文を`{{MARKER:...:MARKER}}`形式で保護
   - サニタイズーション: マーカーはHTMLエスケープされない
   - ポストプロセス: マーカーを適切なHTMLに復元
 - 競合解決ルール: ✅
   - **ブロック引用**:
-    - LukiWiki形式 `> ... <` 優先
+    - UMD形式 `> ... <` 優先
     - 閉じタグ `<` の検出により判定
     - 閉じタグなしの場合はMarkdown `>` 行頭プレフィックスとして処理
   - **リストマーカー**:
@@ -1116,7 +1199,7 @@ universal-markdown/
 
 ### 許容される失敗
 
-- LukiWiki構文と競合するケース
+- UMD構文と競合するケース
 - HTML出力が要求されるテスト（HTML入力禁止のため）
 - 極端に複雑なネスト構造の一部エッジケース
 
