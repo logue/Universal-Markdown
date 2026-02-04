@@ -37,8 +37,8 @@ fn html_entities() -> HashSet<&'static str> {
 /// Protect inline plugin syntax by converting to markers
 ///
 /// Converts various inline plugin patterns into safe markers:
-/// - `&function{content};` → marker with base64-encoded content
-/// - `&function(args){content};` → marker with args and base64-encoded content
+/// - `&function{content};` → marker with content
+/// - `&function(args){content};` → marker with args and content
 /// - `&function(args);` → marker with args
 /// - `&function;` → marker (excluding HTML entities)
 pub fn protect_inline_plugins(input: &str) -> String {
@@ -113,9 +113,9 @@ pub fn protect_inline_plugins(input: &str) -> String {
 /// Protect block plugin syntax by converting to markers
 ///
 /// Converts various block plugin patterns into safe markers:
-/// - `@function(args){{ content }}` → marker with base64-encoded content
-/// - `@function(args){content}` → marker with base64-encoded content
-/// - `@function(args)` → marker with base64-encoded args
+/// - `@function(args){{ content }}` → marker with content
+/// - `@function(args){content}` → marker with content
+/// - `@function(args)` → marker with args
 pub fn protect_block_plugins(input: &str) -> String {
     let mut result = input.to_string();
 

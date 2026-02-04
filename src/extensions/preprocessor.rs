@@ -122,8 +122,6 @@ pub fn remove_comments(input: &str) -> String {
 /// Converts consecutive lines starting with `:term|definition` into
 /// marker placeholders that will be converted to HTML later.
 pub fn process_definition_lists(input: &str) -> String {
-    use base64::{Engine as _, engine::general_purpose};
-
     let mut result = Vec::new();
     let mut lines = input.lines().peekable();
 
@@ -155,10 +153,9 @@ pub fn process_definition_lists(input: &str) -> String {
             // Create marker for the definition list
             if !dl_items.is_empty() {
                 let items_json = serde_json::to_string(&dl_items).unwrap();
-                let encoded_items = general_purpose::STANDARD.encode(items_json.as_bytes());
                 result.push(format!(
                     "{{{{DEFINITION_LIST:{}:DEFINITION_LIST}}}}",
-                    encoded_items
+                    items_json
                 ));
             }
         } else {

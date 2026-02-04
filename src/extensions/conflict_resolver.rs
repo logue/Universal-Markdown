@@ -411,7 +411,54 @@ fn convert_inline_decoration_noargs_to_html(function: &str) -> Option<String> {
 pub fn postprocess_conflicts(html: &str, header_map: &HeaderIdMap) -> String {
     use crate::extensions::block_decorations;
 
-    let mut result = html.to_string();
+    // First, unescape quotes within markers to allow proper JSON parsing
+    // comrak escapes quotes in JSON within markers, so we need to restore them
+    // but ONLY within marker boundaries to avoid XSS
+    let result = html.to_string();
+
+    // Helper function to unescape quotes only within markers
+    let unescape_marker_quotes = |input: &str| -> String {
+        let marker_patterns = vec![
+            (
+                r"\{\{DEFINITION_LIST:([^\}]+):DEFINITION_LIST\}\}",
+                "{{DEFINITION_LIST:",
+            ),
+            (
+                r"\{\{INLINE_PLUGIN:([^\}]+):INLINE_PLUGIN\}\}",
+                "{{INLINE_PLUGIN:",
+            ),
+            (
+                r"\{\{BLOCK_PLUGIN:([^\}]+):BLOCK_PLUGIN\}\}",
+                "{{BLOCK_PLUGIN:",
+            ),
+            (
+                r"\{\{BLOCK_PLUGIN_ARGSONLY:([^\}]+):BLOCK_PLUGIN_ARGSONLY\}\}",
+                "{{BLOCK_PLUGIN_ARGSONLY:",
+            ),
+            (
+                r"\{\{INLINE_PLUGIN_ARGSONLY:([^\}]+):INLINE_PLUGIN_ARGSONLY\}\}",
+                "{{INLINE_PLUGIN_ARGSONLY:",
+            ),
+            (
+                r"\{\{INLINE_PLUGIN_NOARGS:([^\}]+):INLINE_PLUGIN_NOARGS\}\}",
+                "{{INLINE_PLUGIN_NOARGS:",
+            ),
+        ];
+
+        let mut result = input.to_string();
+        for (pattern, marker_start) in marker_patterns {
+            let re = Regex::new(pattern).unwrap();
+            result = re
+                .replace_all(&result, |caps: &Captures| {
+                    let content = &caps[0];
+                    content.replace("&quot;", "\"")
+                })
+                .to_string();
+        }
+        result
+    };
+
+    let mut result = unescape_marker_quotes(&result);
 
     // Add header IDs: <h1>Title</h1> -> <h1><a href="#id" id="id"></a>Title</h1>
     let mut heading_counter = 0;
@@ -465,7 +512,7 @@ pub fn postprocess_conflicts(html: &str, header_map: &HeaderIdMap) -> String {
 
     // Restore inline plugins
     let inline_plugin_marker =
-        Regex::new(r"\{\{INLINE_PLUGIN:(\w+):([^:]*):([^:]*):INLINE_PLUGIN\}\}").unwrap();
+        Regex::new(r"\{\{INLINE_PLUGIN:(\w+):([\s\S]*?):([\s\S]*?):INLINE_PLUGIN\}\}").unwrap();
     result = inline_plugin_marker
         .replace_all(&result, |caps: &Captures| {
             use base64::{Engine as _, engine::general_purpose};
@@ -505,7 +552,8 @@ pub fn postprocess_conflicts(html: &str, header_map: &HeaderIdMap) -> String {
 
     // Restore inline plugins (args only)
     let inline_plugin_argsonly_marker =
-        Regex::new(r"\{\{INLINE_PLUGIN_ARGSONLY:(\w+):([^:]*):INLINE_PLUGIN_ARGSONLY\}\}").unwrap();
+        Regex::new(r"\{\{INLINE_PLUGIN_ARGSONLY:(\w+):([\s\S]*?):INLINE_PLUGIN_ARGSONLY\}\}")
+            .unwrap();
     result = inline_plugin_argsonly_marker
         .replace_all(&result, |caps: &Captures| {
             let function = &caps[1];
@@ -547,7 +595,7 @@ pub fn postprocess_conflicts(html: &str, header_map: &HeaderIdMap) -> String {
 
     // Restore block plugins
     let block_plugin_marker =
-        Regex::new(r"\{\{BLOCK_PLUGIN:(\w+):([^:]*):([^:]*):BLOCK_PLUGIN\}\}").unwrap();
+        Regex::new(r"\{\{BLOCK_PLUGIN:(\w+):([\s\S]*?):([\s\S]*?):BLOCK_PLUGIN\}\}").unwrap();
     result = block_plugin_marker
         .replace_all(&result, |caps: &Captures| {
             use base64::{Engine as _, engine::general_purpose};
@@ -581,7 +629,8 @@ pub fn postprocess_conflicts(html: &str, header_map: &HeaderIdMap) -> String {
 
     // Restore block plugins (args only, no content)
     let block_plugin_argsonly_marker =
-        Regex::new(r"\{\{BLOCK_PLUGIN_ARGSONLY:(\w+):([^:]*):BLOCK_PLUGIN_ARGSONLY\}\}").unwrap();
+        Regex::new(r"\{\{BLOCK_PLUGIN_ARGSONLY:(\w+):([\s\S]*?):BLOCK_PLUGIN_ARGSONLY\}\}")
+            .unwrap();
     result = block_plugin_argsonly_marker
         .replace_all(&result, |caps: &Captures| {
             use base64::{Engine as _, engine::general_purpose};
@@ -611,22 +660,13 @@ pub fn postprocess_conflicts(html: &str, header_map: &HeaderIdMap) -> String {
 
     // Restore definition lists
     let definition_list_marker =
-        Regex::new(r"\{\{DEFINITION_LIST:([^:]+):DEFINITION_LIST\}\}").unwrap();
+        Regex::new(r"\{\{DEFINITION_LIST:([\s\S]*?):DEFINITION_LIST\}\}").unwrap();
     result = definition_list_marker
         .replace_all(&result, |caps: &Captures| {
-            use base64::{Engine as _, engine::general_purpose};
-            let encoded_items = &caps[1];
-
-            // Decode base64 to get JSON
-            let items_json = general_purpose::STANDARD
-                .decode(encoded_items.as_bytes())
-                .ok()
-                .and_then(|bytes| String::from_utf8(bytes).ok())
-                .unwrap_or_else(|| "[]".to_string());
+            let items_json = &caps[1];
 
             // Parse JSON to get items
-            let items: Vec<(String, String)> =
-                serde_json::from_str(&items_json).unwrap_or_default();
+            let items: Vec<(String, String)> = serde_json::from_str(items_json).unwrap_or_default();
 
             if items.is_empty() {
                 return String::new();
