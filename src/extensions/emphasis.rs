@@ -3,6 +3,7 @@
 //! Provides support for UMD-style emphasis using '' and '''
 //! - ''text'' → <b>text</b> (visual bold)
 //! - '''text''' → <i>text</i> (visual italic)
+//! - __text__ → <u>text</u> (underline, Discord-style - handled in preprocessor)
 
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -41,7 +42,7 @@ static UMD_ITALIC: Lazy<Regex> = Lazy::new(|| {
 /// assert!(output.contains("<i>italic</i>"));
 /// ```
 pub fn apply_umd_emphasis(html: &str) -> String {
-    // Process '''text''' first (italic) to avoid conflicts with ''text''
+    // Process '''text''' (italic) first to avoid conflicts with ''text''
     let result = UMD_ITALIC.replace_all(html, "<i>$1</i>");
 
     // Then process ''text'' (bold)
@@ -77,12 +78,28 @@ mod tests {
     }
 
     #[test]
-    fn test_umd_mixed_with_markdown() {
-        // Should work alongside Markdown emphasis
-        let input = "<p>**Markdown bold** and ''UMD bold''</p>";
+    fn test_discord_underline() {
+        // Note: __text__ is handled in preprocessor, not here
+        // This test verifies that apply_umd_emphasis doesn't break placeholder markers
+        let input = "This is {{UNDERLINE:underlined:UNDERLINE}} text.";
         let output = apply_umd_emphasis(input);
-        assert!(output.contains("**Markdown bold**")); // Unchanged
-        assert!(output.contains("<b>UMD bold</b>"));
+        assert!(output.contains("{{UNDERLINE:underlined:UNDERLINE}}"));
+    }
+
+    #[test]
+    fn test_strong_remains_strong() {
+        // **text** should remain as <strong>, not converted to <u>
+        let input = "<strong>emphasis</strong>";
+        let output = apply_umd_emphasis(input);
+        assert_eq!(output, "<strong>emphasis</strong>");
+    }
+
+    #[test]
+    fn test_all_emphasis_types() {
+        let input = "''bold'' and '''italic'''";
+        let output = apply_umd_emphasis(input);
+        assert!(output.contains("<b>bold</b>"));
+        assert!(output.contains("<i>italic</i>"));
     }
 
     #[test]

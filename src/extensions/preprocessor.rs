@@ -2,6 +2,12 @@
 //!
 //! This module handles early-stage text processing before Markdown parsing.
 
+use once_cell::sync::Lazy;
+use regex::Regex;
+
+// Discord-style underline pattern: __text__
+static DISCORD_UNDERLINE: Lazy<Regex> = Lazy::new(|| Regex::new(r"__([^_]+)__").unwrap());
+
 /// Remove comment syntax from input
 ///
 /// Removes single-line comments (`//`) and multi-line comments (`/* ... */`)
@@ -166,6 +172,23 @@ pub fn process_definition_lists(input: &str) -> String {
     result.join("\n")
 }
 
+/// Convert Discord-style underline (__text__) to placeholder before Markdown parsing
+///
+/// This prevents CommonMark from converting __text__ to <strong>
+pub fn preprocess_discord_underline(input: &str) -> String {
+    DISCORD_UNDERLINE
+        .replace_all(input, "{{UNDERLINE:$1:UNDERLINE}}")
+        .to_string()
+}
+
+/// Restore Discord-style underline placeholders to <u> tags
+///
+/// This should be called after Markdown parsing
+pub fn postprocess_discord_underline(html: &str) -> String {
+    html.replace("{{UNDERLINE:", "<u>")
+        .replace(":UNDERLINE}}", "</u>")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -209,5 +232,32 @@ mod tests {
         assert!(output.contains("{{DEFINITION_LIST:"));
         assert!(output.contains("DEFINITION_LIST}}"));
         assert!(output.contains("regular text"));
+    }
+
+    #[test]
+    fn test_preprocess_discord_underline() {
+        let input = "This is __underlined__ text.";
+        let output = preprocess_discord_underline(input);
+        assert!(output.contains("{{UNDERLINE:underlined:UNDERLINE}}"));
+        assert!(!output.contains("__underlined__"));
+    }
+
+    #[test]
+    fn test_postprocess_discord_underline() {
+        let input = "<p>This is {{UNDERLINE:underlined:UNDERLINE}} text.</p>";
+        let output = postprocess_discord_underline(input);
+        assert_eq!(output, "<p>This is <u>underlined</u> text.</p>");
+    }
+
+    #[test]
+    fn test_discord_underline_roundtrip() {
+        let input = "Text with __underline__ here.";
+        let preprocessed = preprocess_discord_underline(input);
+        let html = format!(
+            "<p>{}</p>",
+            preprocessed.replace("__underline__", "{{UNDERLINE:underline:UNDERLINE}}")
+        );
+        let output = postprocess_discord_underline(&html);
+        assert!(output.contains("<u>underline</u>"));
     }
 }

@@ -8,12 +8,14 @@
 //! - &lang(locale){text};
 //! - &abbr(text){description};
 //! - &ruby(reading){text}; (furigana)
-//! - Semantic HTML elements: dfn, kbd, samp, var, cite, q, small, u
+//! - Semantic HTML elements: dfn, kbd, samp, var, cite, q, small
 //! - &time(datetime){text};
 //! - &data(value){text};
 //! - &bdi(text); &bdo(dir){text};
 //! - &wbr; (word break opportunity)
 //! - %%text%% → <s>text</s> (strikethrough)
+//!
+//! Note: For underline, use Discord-style __text__ syntax instead
 
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -52,7 +54,6 @@ static INLINE_VAR: Lazy<Regex> = Lazy::new(|| Regex::new(r"&var\(([^)]+?)\);").u
 static INLINE_CITE: Lazy<Regex> = Lazy::new(|| Regex::new(r"&cite\(([^)]+?)\);").unwrap());
 static INLINE_Q: Lazy<Regex> = Lazy::new(|| Regex::new(r"&q\(([^)]+?)\);").unwrap());
 static INLINE_SMALL: Lazy<Regex> = Lazy::new(|| Regex::new(r"&small\(([^)]+?)\);").unwrap());
-static INLINE_U: Lazy<Regex> = Lazy::new(|| Regex::new(r"&u\(([^)]+?)\);").unwrap());
 
 // Elements with attributes
 static INLINE_TIME: Lazy<Regex> =
@@ -313,7 +314,6 @@ pub fn apply_inline_decorations(html: &str) -> String {
     result = INLINE_SMALL
         .replace_all(&result, "<small>$1</small>;")
         .to_string();
-    result = INLINE_U.replace_all(&result, "<u>$1</u>;").to_string();
 
     // Elements with attributes
     result = INLINE_TIME
@@ -447,13 +447,12 @@ mod tests {
     }
 
     #[test]
-    fn test_cite_q_small_u() {
-        let input = "&cite(Book Title); &q(quote); &small(note); &u(underline);";
+    fn test_cite_q_small() {
+        let input = "&cite(Book Title); &q(quote); &small(note);";
         let output = apply_inline_decorations(input);
         assert!(output.contains("<cite>Book Title</cite>"));
         assert!(output.contains("<q>quote</q>"));
         assert!(output.contains("<small>note</small>"));
-        assert!(output.contains("<u>underline</u>"));
     }
 
     #[test]

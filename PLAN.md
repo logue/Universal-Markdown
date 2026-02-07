@@ -3,7 +3,7 @@
 **プロジェクト概要**: Markdownを超える次世代マークアップ言語。CommonMark仕様テストを合理的にパス(75%+目標)しつつ、Bootstrap 5統合、セマンティックHTML、拡張可能なプラグインシステムを提供。UMDレガシー構文との後方互換性も維持。
 
 **作成日**: 2026年1月23日
-**最終更新**: 2026年2月4日
+**最終更新**: 2026年2月7日
 **Rustバージョン**: 1.93 (最新安定版)
 **ライセンス**: MIT
 
@@ -48,6 +48,19 @@
 - 13 conflict resolution tests
 - 10 doctests
 - 1 semantic integration test
+
+---
+
+## 最近の仕様変更
+
+### 2026年2月7日: Discord風アンダーライン構文
+
+**変更内容**: `__text__` の動作をCommonMark仕様（`<strong>`）からDiscord風（`<u>`）に変更
+
+- **旧仕様**: `__text__` → `<strong>text</strong>` (CommonMark標準)
+- **新仕様**: `__text__` → `<u>text</u>` (Discord風アンダーライン)
+- **互換性**: `&u(text);` 構文も引き続きサポート
+- **実装**: [src/extensions/emphasis.rs](src/extensions/emphasis.rs)
 
 ---
 

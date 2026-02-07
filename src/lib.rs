@@ -111,20 +111,26 @@ pub fn parse_with_frontmatter(input: &str) -> ParseResult {
     // Step 0: Extract frontmatter
     let (frontmatter_data, content) = frontmatter::extract_frontmatter(input);
 
-    // Step 1: Pre-process to resolve syntax conflicts and extract custom header IDs
+    // Step 1: Pre-process Discord-style underline (__text__) to prevent CommonMark conversion
+    let content = extensions::preprocessor::preprocess_discord_underline(&content);
+
+    // Step 2: Pre-process to resolve syntax conflicts and extract custom header IDs
     let (preprocessed, header_map) = extensions::conflict_resolver::preprocess_conflicts(&content);
 
-    // Step 2: Sanitize input
+    // Step 3: Sanitize input
     let sanitized = sanitizer::sanitize(&preprocessed);
 
-    // Step 3: Parse with comrak-based parser
+    // Step 4: Parse with comrak-based parser
     let options = parser::ParserOptions::default();
     let html = parser::parse_to_html(&sanitized, &options);
 
-    // Step 4: Apply extended syntax and custom header IDs (includes post-processing)
+    // Step 5: Restore Discord-style underline placeholders to <u> tags
+    let html = extensions::preprocessor::postprocess_discord_underline(&html);
+
+    // Step 6: Apply extended syntax and custom header IDs (includes post-processing)
     let final_html = extensions::apply_extensions_with_headers(&html, &header_map);
 
-    // Step 5: Extract footnotes from HTML
+    // Step 7: Extract footnotes from HTML
     let (body_html, footnotes_html) = extract_footnotes(&final_html);
 
     ParseResult {
