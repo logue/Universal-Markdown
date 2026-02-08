@@ -1,6 +1,6 @@
 # 実装予定機能リファレンス
 
-**最終更新**: 2026年2月4日
+**最終更新**: 2026年2月8日
 
 このドキュメントは実装予定だが、まだ実装されていない機能を記載しています。
 
@@ -8,9 +8,7 @@
 
 - [メディアファイル自動検出](#メディアファイル自動検出)
 - [ブロック装飾の追加機能](#ブロック装飾の追加機能)
-- [スポイラー機能](#スポイラー機能)
 - [テーブル拡張](#テーブル拡張)
-- [定義リスト](#定義リスト)
 - [Markdown拡張機能](#markdown拡張機能)
 - [高度なUMD機能](#高度なumd機能)
 
@@ -231,78 +229,6 @@ TRUNCATE: 長いテキストは省略されます...
 
 ---
 
-## スポイラー機能
-
-### Discord風スポイラー表示
-
-クリックまたはタップで内容を表示（デフォルトは非表示）。
-
-### 構文
-
-**Discord互換構文**:
-
-```markdown
-||ネタバレ注意||
-このキャラは||実は悪役||だった。
-```
-
-**UMD装飾関数形式**（代替構文）:
-
-```markdown
-&spoiler{ネタバレ注意};
-```
-
-### 出力HTML
-
-```html
-<span class="spoiler" role="button" tabindex="0" aria-expanded="false"
-  >ネタバレ注意</span
->
-```
-
-### アクセシビリティ属性
-
-- `role="button"`: クリック可能なインタラクティブ要素
-- `tabindex="0"`: キーボードフォーカス可能
-- `aria-expanded="false"`: 初期状態は非表示（クリック後は`"true"`に変更）
-
-### CSS実装（推奨）
-
-```css
-.spoiler {
-  background-color: #202225;
-  color: transparent;
-  cursor: pointer;
-  transition: color 0.1s ease;
-}
-.spoiler:hover,
-.spoiler:active,
-.spoiler.revealed {
-  background-color: #2f3136;
-  color: inherit;
-}
-```
-
-### JavaScript実装（オプション）
-
-```javascript
-document.querySelectorAll(".spoiler").forEach((el) => {
-  const toggle = () => {
-    const isRevealed = el.classList.toggle("revealed");
-    el.setAttribute("aria-expanded", isRevealed);
-  };
-  el.addEventListener("click", toggle);
-  el.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      toggle();
-    }
-  });
-});
-```
-
----
-
 ## テーブル拡張
 
 ### テーブルバリエーション
@@ -343,73 +269,6 @@ document.querySelectorAll(".spoiler").forEach((el) => {
 ```
 
 Bootstrap標準の引用スタイルを自動適用。
-
----
-
-## 定義リスト
-
-### UMD構文（優先実装）
-
-```markdown
-:用語1|定義1
-:用語2|定義2の説明文
-```
-
-### Markdown拡張構文（オプション）
-
-```markdown
-用語1
-: 定義1
-
-用語2
-: 定義2の説明文
-```
-
-### HTML出力
-
-```html
-<dl>
-  <dt>用語1</dt>
-  <dd>定義1</dd>
-  <dt>用語2</dt>
-  <dd>定義2の説明文</dd>
-</dl>
-```
-
-### Bootstrapスタイリング
-
-デフォルトクラスなし。カスタムCSSまたはユーティリティクラスで調整:
-
-```html
-<dl class="row">
-  <dt class="col-sm-3">用語</dt>
-  <dd class="col-sm-9">定義</dd>
-</dl>
-```
-
-### 複数定義の対応
-
-```markdown
-:用語1|定義1-1
-:用語1|定義1-2
-```
-
-```html
-<dl>
-  <dt>用語1</dt>
-  <dd>定義1-1</dd>
-  <dd>定義1-2</dd>
-</dl>
-```
-
-### 実装方針
-
-1. 行頭の`:`で定義リストを検出
-2. 連続する定義リスト項目を1つの`<dl>`タグにグループ化
-3. 定義は複数行対応（インデントで継続行を判定）
-4. 定義内でMarkdown構文とUMD装飾関数をサポート
-
-**用途**: 用語集、FAQ、仕様書などでの使用を想定。
 
 ---
 

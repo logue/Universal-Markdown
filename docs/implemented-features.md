@@ -1,6 +1,6 @@
 # 実装済み機能リファレンス
 
-**最終更新**: 2026年2月7日
+**最終更新**: 2026年2月8日
 
 このドキュメントはUniversal Markdownで実装済みの機能を記載しています。
 
@@ -8,6 +8,8 @@
 
 - [基本Markdown機能](#基本markdown機能)
 - [コメント構文](#コメント構文)
+- [Spoiler機能](#spoiler機能)
+- [定義リスト](#定義リスト)
 - [UMD拡張構文](#umd拡張構文)
 - [プラグインシステム](#プラグインシステム)
 - [テーブル機能](#テーブル機能)
@@ -214,6 +216,127 @@ URLスキーム（`https://`等）の `//` はコメントとして扱われま�
 
 ---
 
+## Spoiler機能
+
+Discord風のSpoiler構文をサポートしています。
+
+### Discord構文
+
+```markdown
+このキャラは||実は悪役||だった。
+```
+
+### UMD装飾関数形式
+
+```markdown
+このキャラは&spoiler{実は悪役};だった。
+```
+
+### 出力
+
+```html
+このキャラは<span
+  class="spoiler"
+  role="button"
+  tabindex="0"
+  aria-expanded="false"
+  >実は悪役</span
+>だった。
+```
+
+デフォルトではコンテンツが隠され、クリックまたはタップで表示されます。アクセシビリティのため、`role="button"`、`tabindex="0"`、`aria-expanded`属性が自動的に追加されます。
+
+### CSSスタイリング（推奨）
+
+```css
+.spoiler {
+  background-color: #202225;
+  color: transparent;
+  cursor: pointer;
+  transition: color 0.1s ease;
+}
+
+.spoiler:hover,
+.spoiler:active,
+.spoiler.revealed {
+  background-color: #2f3136;
+  color: inherit;
+}
+```
+
+### JavaScript実装（オプション）
+
+```javascript
+document.querySelectorAll(".spoiler").forEach((el) => {
+  const toggle = () => {
+    const isRevealed = el.classList.toggle("revealed");
+    el.setAttribute("aria-expanded", isRevealed);
+  };
+  el.addEventListener("click", toggle);
+  el.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      toggle();
+    }
+  });
+});
+```
+
+---
+
+## 定義リスト
+
+用語と定義をセマンティックにマークアップできます。
+
+### 構文
+
+```markdown
+:HTML|HyperText Markup Language
+:CSS|Cascading Style Sheets
+:JavaScript|プログラミング言語
+```
+
+### 出力
+
+```html
+<dl>
+  <dt>HTML</dt>
+  <dd>HyperText Markup Language</dd>
+  <dt>CSS</dt>
+  <dd>Cascading Style Sheets</dd>
+  <dt>JavaScript</dt>
+  <dd>プログラミング言語</dd>
+</dl>
+```
+
+### 複数定義
+
+同じ用語に複数の定義を持たせることができます:
+
+```markdown
+:用語1|定義1-1
+:用語1|定義1-2
+```
+
+出力:
+
+```html
+<dl>
+  <dt>用語1</dt>
+  <dd>定義1-1</dd>
+  <dd>定義1-2</dd>
+</dl>
+```
+
+### 使用例
+
+- 用語集
+- FAQ（よくある質問）
+- 仕様書の定義
+- 技術用語の説明
+
+---
+
 ## ブロック引用
 
 **UMD形式** (開始・終了タグ):
@@ -348,12 +471,31 @@ Universal Markdownは拡張可能なプラグインシステムを提供しま�
 
 プラグインは`<template>`タグと`<data>`要素で出力されます:
 
+**複数引数の例**:
+
 ```html
-<template class="umd-plugin umd-plugin-function">
-  <data value="0">arg1</data>
-  <data value="1">arg2</data>
-  content
-</template>
+<template class="umd-plugin umd-plugin-function"
+  ><data value="0">arg1</data><data value="1">arg2</data>content</template
+>
+```
+
+- `class="umd-plugin umd-plugin-{関数名}"` - プラグイン識別用のクラス
+- `<data value="インデックス">引数</data>` - 各引数は個別の`<data>`要素として格納（カンマ区切り）
+- コンテンツはHTMLエスケープされてテキストノードとして保持（`&` → `&amp;`、`<` → `&lt;`など）
+- ブロック型プラグインは前後に改行が入り、インライン型はインラインで出力されます
+
+**再パース対応**:
+
+コンテンツ内のWiki構文はエスケープされて保持されるため、バックエンド側で`<template>`要素のテキストコンテンツを取得し、再度パーサーに渡すことでネストされた構文も処理可能です：
+
+```markdown
+@box(){{ **bold** and *italic* }}
+```
+
+↓
+
+```html
+<template class="umd-plugin umd-plugin-box">**bold** and *italic*</template>
 ```
 
 バックエンド（Nuxt/Laravel等）でこのHTMLをパースし、最終的なHTML出力を生成します。

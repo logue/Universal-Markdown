@@ -16,7 +16,7 @@ fn main() {
     println!("Output 2: {}\n", output2);
 
     // Test 3: Inline plugin with no args (no content)
-    let input3 = "&br;";
+    let input3 = "&linebreak;";
     println!("Input 3: {}", input3);
     let output3 = parse(input3);
     println!("Output 3: {}\n", output3);
@@ -48,41 +48,63 @@ fn main() {
     // Validation
     println!("=== Validation ===");
 
-    if output1.contains("data-args='[\"yellow\"]'") && output1.contains("important text") {
+    if output1.contains("umd-plugin-highlight")
+        && output1.contains("<data value=\"0\">yellow</data>")
+        && output1.contains("important text")
+    {
         println!("✓ Inline plugin with args and content works");
     } else {
         println!("✗ Inline plugin with args and content failed");
+        println!("  Output: {}", output1);
     }
 
-    if output2.contains("data-args='[\"mdi-pencil\"]'") && output2.contains("/>") {
-        println!("✓ Inline plugin with args only (self-closing) works");
+    if output2.contains("umd-plugin-icon")
+        && output2.contains("<data value=\"0\">mdi-pencil</data>")
+    {
+        println!("✓ Inline plugin with args only works");
     } else {
         println!("✗ Inline plugin with args only failed");
+        println!("  Output: {}", output2);
     }
 
-    if output3.contains("data-args='[]'") && output3.contains("plugin-br") && output3.contains("/>")
-    {
-        println!("✓ Inline plugin with no args (self-closing) works");
+    if output3.contains("umd-plugin-linebreak") && !output3.contains("<data") {
+        println!("✓ Inline plugin with no args works");
     } else {
         println!("✗ Inline plugin with no args failed");
+        println!("  Output: {}", output3);
     }
 
-    if output4.contains("data-args='[\"rust\"]'") && output4.contains("fn main()") {
+    if output4.contains("umd-plugin-code")
+        && output4.contains("<data value=\"0\">rust</data>")
+        && output4.contains("fn main()")
+    {
         println!("✓ Block plugin with args and content works");
     } else {
         println!("✗ Block plugin with args and content failed");
+        println!("  Output: {}", output4);
     }
 
-    if output5.contains("data-args='[]'") && output5.contains("plugin-toc") {
-        println!("✓ Block plugin with args only (no content) works");
+    if output5.contains("umd-plugin-toc") && !output5.contains("<data") {
+        println!("✓ Block plugin with no args works");
+    } else {
+        println!("✗ Block plugin with no args failed");
+        println!("  Output: {}", output5);
+    }
+
+    if output6.contains("umd-plugin-feed")
+        && output6.contains("<data value=\"0\">https://example.com/feed.atom</data>")
+        && output6.contains("<data value=\"1\">10</data>")
+    {
+        println!("✓ Block plugin with args only (multiple args) works");
     } else {
         println!("✗ Block plugin with args only failed");
-        println!("Output: {}", output6);
+        println!("  Output: {}", output6);
     }
 
-    if !output7.contains("plugin-") && output7.contains("@mention") {
+    if !output7.contains("umd-plugin-") && output7.contains("@mention") {
         println!("✓ @mention without parens is ignored");
     } else {
         println!("✗ @mention handling failed");
+        println!("  Output: {}", output7);
     }
 }

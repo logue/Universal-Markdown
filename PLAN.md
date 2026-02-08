@@ -51,22 +51,7 @@
 
 ---
 
-## 最近の仕様変更
-
-### 2026年2月7日: Discord風アンダーライン構文
-
-**変更内容**: `__text__` の動作をCommonMark仕様（`<strong>`）からDiscord風（`<u>`）に変更
-
-- **旧仕様**: `__text__` → `<strong>text</strong>` (CommonMark標準)
-- **新仕様**: `__text__` → `<u>text</u>` (Discord風アンダーライン)
-- **互換性**: `&u(text);` 構文も引き続きサポート
-- **実装**: [src/extensions/emphasis.rs](src/extensions/emphasis.rs)
-
----
-
-## 未実装機能（優先順位順）
-
-### 高優先度（短期実装予定）
+## 実装済み機能（最近完了）
 
 #### 1. メディアファイル自動検出 🚧
 
@@ -87,7 +72,21 @@
 
 **詳細**: [docs/planned-features.md#ブロック装飾の追加機能](docs/planned-features.md#ブロック装飾の追加機能)
 
-#### 3. スポイラー機能 🚧
+---
+
+### 実装済み機能（最近完了）
+
+以下の機能は実装が完了しています：
+
+#### ✅ Discord風アンダーライン構文
+
+**変更内容**: `__text__` の動作をCommonMark仕様（`<strong>`）からDiscord風（`<u>`）に変更
+
+- **旧仕様**: `__text__` → `<strong>text</strong>` (CommonMark標準)
+- **新仕様**: `__text__` → `<u>text</u>` (Discord風アンダーライン)
+- **実装**: [src/extensions/preprocessor.rs](src/extensions/preprocessor.rs)でプレースホルダー方式により実装
+
+#### ✅ Spoiler機能
 
 Discord風スポイラー表示（`||text||` 構文）。
 
@@ -98,9 +97,10 @@ Discord風スポイラー表示（`||text||` 構文）。
 &spoiler{ネタバレ}; <!-- UMD形式 -->
 ```
 
-**詳細**: [docs/planned-features.md#スポイラー機能](docs/planned-features.md#スポイラー機能)
+**実装**: [src/extensions/inline_decorations.rs](src/extensions/inline_decorations.rs)
+**詳細**: [docs/implemented-features.md#spoiler](docs/implemented-features.md#spoiler)
 
-#### 4. 定義リスト 🚧
+#### ✅ 定義リスト
 
 用語集やFAQで使用する定義リスト構文。
 
@@ -111,7 +111,8 @@ Discord風スポイラー表示（`||text||` 構文）。
 :用語2|定義2
 ```
 
-**詳細**: [docs/planned-features.md#定義リスト](docs/planned-features.md#定義リスト)
+**実装**: [src/extensions/preprocessor.rs](src/extensions/preprocessor.rs) の `process_definition_lists`
+**詳細**: [docs/implemented-features.md#定義リスト](docs/implemented-features.md#定義リスト)
 
 ---
 

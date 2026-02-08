@@ -9,7 +9,8 @@ CommonMark準拠のMarkdownパーサーに、Bootstrap 5統合、セマンティ
 - **Bootstrap 5統合**: デフォルトでBootstrapクラスを生成（Core UI互換）
 - **セマンティックHTML**: アクセシビリティとSEOに優しいHTML生成
 - **メディアファイル自動検出**: 画像構文で動画・音声を自動判別（`<picture>`, `<video>`, `<audio>`タグ生成）
-- **Discord風Spoilerタグ**: `|| text ||`構文でネタバレ防止表示
+- **Discord風Spoilerタグ**: `||text||`構文でネタバレ防止表示
+- **定義リスト**: `:term|definition`構文で用語集やFAQを記述
 - **テーブル拡張**: セル連結（colspan/rowspan）、配置プレフィックス（LEFT/CENTER/RIGHT/JUSTIFY）
 - **ブロック装飾**: 色指定（COLOR）、サイズ指定（SIZE）、配置制御（Bootstrap対応）
 - **インライン装飾**: バッジ、ルビ、上付き・下付き文字など豊富なセマンティック要素
@@ -325,6 +326,8 @@ Markdownの標準テーブルでは表現できないセル連結をサポート
 </table>
 ```
 
+**注意**: 行末の`|h`でヘッダー行を指定し、セル先頭の`~`でヘッダーセル（`<th>`）を指定します。
+
 #### 縦方向連結（rowspan）
 
 `|^`マーカーを使用して、上のセルと連結します：
@@ -332,7 +335,7 @@ Markdownの標準テーブルでは表現できないセル連結をサポート
 ```markdown
 | ~Header1 | ~Header2 |h
 | Cell1 | Cell2 |
-| |^ | Cell3 |
+|^ | Cell3 |
 ```
 
 出力：
@@ -357,6 +360,8 @@ Markdownの標準テーブルでは表現できないセル連結をサポート
 </table>
 ```
 
+**注意**: `|^`は上のセルとの連結を示すマーカーで、セル内容ではありません。
+
 #### 複合連結
 
 colspanとrowspanを組み合わせることもできます：
@@ -364,8 +369,14 @@ colspanとrowspanを組み合わせることもできます：
 ```markdown
 | ~Header1 |> | ~Header3 |h
 | Cell1 |> | Cell3 |
-| |^ |^ | Cell4 |
+|^ |^ | Cell4 |
 ```
+
+**UMDテーブルの構文規則**：
+
+- 行末に`|h`を付けるとその行がヘッダー行（`<thead>`）になります
+- セル先頭に`~`を付けるとそのセルが`<th>`タグになります
+- `|h`がない場合は全て`<tbody>`内の`<td>`として扱われます
 
 ### セル内装飾
 
@@ -491,13 +502,25 @@ Universal Markdownは、拡張可能なプラグインシステムを提供し�
 **出力HTML**:
 
 ```html
-<span class="plugin-function" data-args="args">content</span>
+<template class="umd-plugin umd-plugin-function">
+  <data value="0">args</data>
+  content
+</template>
 ```
 
 **使用例**:
 
 ```
 &highlight(yellow){重要なテキスト};
+```
+
+**出力**:
+
+```html
+<template class="umd-plugin umd-plugin-highlight">
+  <data value="0">yellow</data>
+  重要なテキスト
+</template>
 ```
 
 ### ブロック型プラグイン（複数行）
@@ -509,7 +532,10 @@ Universal Markdownは、拡張可能なプラグインシステムを提供し�
 **出力HTML**:
 
 ```html
-<div class="plugin-function" data-args="args">content</div>
+<template class="umd-plugin umd-plugin-function">
+  <data value="0">args</data>
+  content
+</template>
 ```
 
 **使用例**:
@@ -517,6 +543,12 @@ Universal Markdownは、拡張可能なプラグインシステムを提供し�
 ```
 @toc(2){{
 }}
+```
+
+**出力**:
+
+```html
+<template class="umd-plugin umd-plugin-toc"><data value="0">2</data></template>
 ```
 
 ### ブロック型プラグイン（単行）
@@ -528,7 +560,9 @@ Universal Markdownは、拡張可能なプラグインシステムを提供し�
 **出力HTML**:
 
 ```html
-<div class="plugin-function" data-args="args">content</div>
+<template class="umd-plugin umd-plugin-function"
+  ><data value="0">args</data>content</template
+>
 ```
 
 **使用例**:
@@ -536,6 +570,33 @@ Universal Markdownは、拡張可能なプラグインシステムを提供し�
 ```
 @include(file.txt){デフォルトコンテンツ}
 ```
+
+**出力**:
+
+```html
+<template class="umd-plugin umd-plugin-include"
+  ><data value="0">file.txt</data>デフォルトコンテンツ</template
+>
+```
+
+### 複数引数の例
+
+カンマ区切りで複数の引数を指定できます：
+
+```
+@feed(https://example.com/feed.atom, 10)
+```
+
+**出力**:
+
+```html
+<template class="umd-plugin umd-plugin-feed"
+  ><data value="0">https://example.com/feed.atom</data
+  ><data value="1">10</data></template
+>
+```
+
+各引数は個別の`<data>`要素として出力され、`value`属性にインデックス（0始まり）が設定されます。
 
 ### プラグインのネストと再パース
 
@@ -545,7 +606,7 @@ Universal Markdownは、拡張可能なプラグインシステムを提供し�
 &outer(arg1){text &inner(arg2){nested}; more};
 ```
 
-**元のWiki構文がタグのテキストコンテンツとしてそのまま保持**されます。これにより、JavaScript側でプラグイン実行時に再パースが可能です：
+**元のWiki構文がHTMLエスケープされてテキストコンテンツとして保持**されます。これにより、JavaScript側でプラグイン実行時に再パースが可能です：
 
 ```
 @box(){{ **bold** and *italic* text }}
@@ -554,16 +615,20 @@ Universal Markdownは、拡張可能なプラグインシステムを提供し�
 ↓
 
 ```html
-<div class="plugin-box" data-args="">**bold** and *italic* text</div>
+<template class="umd-plugin umd-plugin-box"
+  >**bold** and *italic* text</template
+>
 ```
 
-プラグイン実装側でDOMのテキストコンテンツを取得し、再度Universal Markdownパーサーに渡すことで、ネストされた構文も正しく処理できます。
+プラグイン実装側で`<template>`要素のテキストコンテンツを取得し、再度Universal Markdownパーサーに渡すことで、ネストされた構文も正しく処理できます。
 
 **重要な特徴：**
 
-- ブロック型プラグインは独立した`<div>`要素として出力され、`<p>`タグで括られません
-- コンテンツ内の`&`文字は保持されるため、ネストされたプラグイン構文も再パース可能
-- コンテンツ内のWiki構文（`**bold**`など）も生のまま保持されます
+- プラグインは`<template class="umd-plugin umd-plugin-{関数名}">`要素として出力されます
+- 引数は`<data value="インデックス">引数</data>`要素として格納されます（複数引数はカンマ区切りで個別に出力）
+- コンテンツはHTMLエスケープされて保持されるため、`&`や`<`などの特殊文字も安全に扱えます
+- コンテンツ内のWiki構文（`**bold**`など）はエスケープされて保持され、プラグイン実行時に再パース可能です
+- ブロック型プラグインは独立した要素として出力され、`<p>`タグで括られません
 
 ### 組み込み装飾との違い
 
