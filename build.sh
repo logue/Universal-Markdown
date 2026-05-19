@@ -57,6 +57,7 @@ pkg["bugs"] = {
     "url" => "https://github.com/logue/umd-core/issues"
 }
 pkg["sideEffects"] = false
+pkg["name"] = "universal-markdown"
 
 File.write(path, JSON.pretty_generate(pkg) + "\n")
 RUBY
