@@ -560,11 +560,11 @@ cargo test --test bootstrap_integration  # Integration tests only
 
 ## Built With
 
-- **comrak** 0.50.0 - CommonMark + GFM parser
+- **comrak** 0.52.0 - CommonMark + GFM parser
 - **ammonia** 4.1.2 - HTML sanitization
 - **maud** 0.27.0 - Type-safe HTML generation
-- **regex** 1.12.2 - Pattern matching
-- **wasm-bindgen** 0.2.108 - WASM integration
+- **regex** 1.12.3 - Pattern matching
+- **wasm-bindgen** 0.2.120 - WASM integration
 
 ---
 
