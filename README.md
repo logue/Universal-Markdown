@@ -21,6 +21,18 @@ A next-generation Markdown parser built with Rust, combining CommonMark complian
 
 ## Features
 
+## Browser Support Policy
+
+umd-core targets evergreen browsers only.
+Backward compatibility is the responsibility of the
+consuming application, not this library.
+
+Minimum requirements:
+
+- CSS Layers (@layer) support
+- CSS Custom Properties support
+- WASM support
+
 ### Core Markdown
 
 - ✅ **CommonMark Compliant** (~75%+ specification compliance)

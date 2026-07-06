@@ -112,6 +112,66 @@ fn test_complex_nesting() {
 }
 
 #[test]
+fn test_colon_block_plugin_basic() {
+    let input = ":::alert warning\nSomething went wrong\n:::";
+    let output = parse(input);
+    assert!(output.contains(r#"class="umd-plugin umd-plugin-alert""#));
+    assert!(output.contains("Something went wrong"));
+}
+
+#[test]
+fn test_colon_block_plugin_no_args() {
+    let input = ":::toc\n:::";
+    let output = parse(input);
+    assert!(output.contains(r#"class="umd-plugin umd-plugin-toc""#));
+}
+
+#[test]
+fn test_colon_block_plugin_multiline_content() {
+    let input = ":::box\nLine one\n\nLine two\n:::";
+    let output = parse(input);
+    assert!(output.contains(r#"class="umd-plugin umd-plugin-box""#));
+    assert!(output.contains("Line one"));
+    assert!(output.contains("Line two"));
+}
+
+#[test]
+fn test_colon_block_plugin_math_integration() {
+    let input = ":::math\nE = mc^2\n:::";
+    let output = parse(input);
+    assert!(output.contains("<math"));
+}
+
+#[test]
+fn test_colon_block_plugin_table_integration() {
+    let input = ":::table striped\n| A | B |\n|---|---|\n| 1 | 2 |\n:::";
+    let output = parse(input);
+    assert!(output.contains(r#"class="table table-striped""#) || output.contains("table-striped"));
+    assert!(output.contains("<table"));
+}
+
+#[test]
+fn test_colon_block_plugin_nested_block_not_supported() {
+    // Nested `:::` blocks are not supported: the outer block closes at the
+    // first bare `:::` line (the inner block's own closer), so the inner
+    // start marker ends up as literal escaped content rather than a real
+    // nested plugin.
+    let input = ":::outer\n:::inner\ncontent\n:::\n:::";
+    let output = parse(input);
+    assert!(output.contains(r#"class="umd-plugin umd-plugin-outer""#));
+    assert!(!output.contains("umd-plugin-inner"));
+}
+
+#[test]
+fn test_colon_block_plugin_does_not_swallow_surrounding_text() {
+    let input = "Before\n\n:::note\nInside\n:::\n\nAfter";
+    let output = parse(input);
+    assert!(output.contains("Before"));
+    assert!(output.contains("After"));
+    assert!(output.contains(r#"class="umd-plugin umd-plugin-note""#));
+}
+
+#[test]
 fn test_multiline_content() {
     let input = "# Heading\n\n> UMD blockquote <\n\nParagraph\n\nCOLOR(blue): Blue paragraph";
     let output = parse(input);

@@ -1,6 +1,6 @@
 # プラグインシステム
 
-**最終更新**: 2026年5月18日
+**最終更新**: 2026年7月6日
 
 Universal Markdown のプラグイン構文と出力形式です。
 
@@ -18,6 +18,25 @@ Universal Markdown のプラグイン構文と出力形式です。
 - `@function(args){...}`
 - `@function(args)`
 - `@function()`
+
+### ブロック型（`::: 記法`）
+
+Qiita/GROWI 系の記法との互換性のための代替構文です。`@function(args){{ ... }}`
+と同じプラグインシステムに統合されており、出力形式・標準プラグイン（`@table` /
+`@math` / `@popover` / `@clear`）の扱いも共通です。
+
+```umd
+:::function args
+content
+:::
+```
+
+- **開始**: `:::function args` （`function` はプラグイン名、`args` は開始行の
+  残り全体を引数文字列として使用。カンマ区切りで複数引数も指定可能）
+- **終了**: `:::` のみからなる行
+- **入れ子**: 非サポート。ブロックは最初に現れる `:::` のみの行で閉じるため、
+  内側に別の `:::` ブロックや `@`/`&` プラグイン構文を書いても、それらは
+  プラグインとして解釈されず、エスケープされた生テキストとして扱われます。
 
 ## 出力形式
 
@@ -93,6 +112,25 @@ Universal Markdown のプラグイン構文と出力形式です。
   内容
 </details>
 <div class="clearfix"></div>
+```
+
+### ブロックプラグイン（`::: 記法`）
+
+入力:
+
+```umd
+:::alert warning
+Something went wrong
+:::
+```
+
+出力例:
+
+```html
+<template class="umd-plugin umd-plugin-alert">
+  <data value="0">warning</data>
+  Something went wrong
+</template>
 ```
 
 ## TypeScript でのパース例
@@ -230,6 +268,7 @@ function parseUmdPlugins(string $html): array
 ## 主なテスト
 
 - `tests/bootstrap_integration.rs`
-- `tests/conflict_resolution.rs`
+- `tests/conflict_resolution.rs`（`::: 記法` の統合テストを含む）
 - `examples/test_plugin_extended.rs`
 - `examples/test_plugin_table.rs`
+- `src/extensions/plugin_markers.rs` の単体テスト（`::: 記法` の字句解析）

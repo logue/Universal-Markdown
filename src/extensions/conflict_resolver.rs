@@ -344,6 +344,11 @@ pub fn preprocess_conflicts(input: &str) -> (String, HeaderIdMap) {
         })
         .to_string();
 
+    // Protect colon block plugin syntax (`::: 記法`) first, so that any
+    // `@`/`&` plugin syntax nested inside a `:::` block is swallowed as
+    // opaque literal content instead of being parsed as a nested plugin.
+    result = plugin_markers::protect_colon_block_plugins(&result);
+
     // Protect inline and block plugin syntax
     result = plugin_markers::protect_inline_plugins(&result);
     result = plugin_markers::protect_block_plugins(&result);
@@ -528,11 +533,11 @@ fn render_math_html(formula: &str, block_display: bool) -> Option<String> {
         let mut converter = converter_cell.borrow_mut();
         converter
             .as_mut()
-            .and_then(|converter| converter.convert_with_local_counter(formula, display).ok())
+            .and_then(|converter| converter.convert_with_local_state(formula, display).ok())
     });
 
     match converted {
-        Some(mathml) => Some(mathml),
+        Some(result) => Some(result.mathml),
         None => Some(format!(
             "<span class=\"umd-math-error\" data-math-source=\"{}\">{}</span>",
             escape_html_text(formula),
@@ -776,6 +781,10 @@ pub fn postprocess_conflicts(html: &str, header_map: &HeaderIdMap) -> String {
                 "{{BLOCK_PLUGIN_ARGSONLY:",
             ),
             (
+                r"\{\{COLON_BLOCK_PLUGIN:([^\}]+):COLON_BLOCK_PLUGIN\}\}",
+                "{{COLON_BLOCK_PLUGIN:",
+            ),
+            (
                 r"\{\{INLINE_PLUGIN_ARGSONLY:([^\}]+):INLINE_PLUGIN_ARGSONLY\}\}",
                 "{{INLINE_PLUGIN_ARGSONLY:",
             ),
@@ -979,6 +988,64 @@ pub fn postprocess_conflicts(html: &str, header_map: &HeaderIdMap) -> String {
                 .ok()
                 .and_then(|bytes| String::from_utf8(bytes).ok())
                 .unwrap_or_else(|| encoded_content.to_string());
+
+            if function == "table" {
+                return process_table_plugin(args, &content);
+            }
+
+            if function == "math" {
+                let formula = if content.trim().is_empty() {
+                    args
+                } else {
+                    &content
+                };
+                if let Some(mathml) = render_math_html(formula, true) {
+                    return mathml;
+                }
+            }
+
+            if function == "popover" {
+                return render_popover_html(args, &content);
+            }
+
+            let args_html = render_args_as_data(args);
+            let escaped_content = escape_html_text(&content);
+
+            if escaped_content.is_empty() {
+                format!(
+                    "<template class=\"umd-plugin umd-plugin-{}\">{}</template>",
+                    function, args_html
+                )
+            } else {
+                format!(
+                    "<template class=\"umd-plugin umd-plugin-{}\">{}{}</template>",
+                    function, args_html, escaped_content
+                )
+            }
+        })
+        .to_string();
+
+    // Restore colon block plugins (`::: 記法`)
+    let colon_block_plugin_marker =
+        Regex::new(r"\{\{COLON_BLOCK_PLUGIN:(\w+):([\s\S]*?):([\s\S]*?):COLON_BLOCK_PLUGIN\}\}")
+            .unwrap();
+    result = colon_block_plugin_marker
+        .replace_all(&result, |caps: &Captures| {
+            use base64::{Engine as _, engine::general_purpose};
+            let function = &caps[1];
+            let args = &caps[2];
+            let encoded_content = &caps[3];
+
+            // Decode base64 to get original content
+            let content = general_purpose::STANDARD
+                .decode(encoded_content.as_bytes())
+                .ok()
+                .and_then(|bytes| String::from_utf8(bytes).ok())
+                .unwrap_or_else(|| encoded_content.to_string());
+
+            if function == "clear" && args.trim().is_empty() && content.trim().is_empty() {
+                return "<div class=\"clearfix\"></div>".to_string();
+            }
 
             if function == "table" {
                 return process_table_plugin(args, &content);

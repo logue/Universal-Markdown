@@ -50,7 +50,9 @@ fn main() {
     println!("Example 5: With Bootstrap classes and alignment");
     println!("Input:\n{}\n", with_classes);
     println!("Output:\n{}\n", parse(with_classes));
-    println!("Expected: Headers centered/right aligned, cells with vertical alignment, and colspan\n");
+    println!(
+        "Expected: Headers centered/right aligned, cells with vertical alignment, and colspan\n"
+    );
 
     // Example 6: Complex table with multiple spans
     let complex = r#"| Product |> |> | Q1 | Q2 | Q3 | Q4 |
