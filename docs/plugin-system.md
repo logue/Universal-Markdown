@@ -158,8 +158,9 @@ export function parseUmdPlugins(html: string): UmdPluginNode[] {
     const pluginClass = classes.find(
       (c) => c.startsWith("umd-plugin-") && c !== "umd-plugin",
     );
-    const name =
-      pluginClass ? pluginClass.replace("umd-plugin-", "") : "unknown";
+    const name = pluginClass
+      ? pluginClass.replace("umd-plugin-", "")
+      : "unknown";
 
     const argNodes = Array.from(tpl.content.querySelectorAll("data[value]"));
     const args = argNodes
@@ -249,6 +250,10 @@ function parseUmdPlugins(string $html): array
 
 - 配列インデックスは `<data value="index">` を優先して復元します。
 - 実運用では、`name` ごとにハンドラを分岐し、許可されたプラグインのみ実行してください。
+
+## 関連ドキュメント
+
+- インライン型プラグインの一覧は [inline-plugins.md](inline-plugins.md) を参照してください。
 
 ## 標準プラグイン
 
