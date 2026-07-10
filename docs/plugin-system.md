@@ -253,6 +253,7 @@ function parseUmdPlugins(string $html): array
 
 ## 関連ドキュメント
 
+- ブロック型プラグインの概要は [block-plugins.md](block-plugins.md) を参照してください。
 - インライン型プラグインの一覧は [inline-plugins.md](inline-plugins.md) を参照してください。
 
 ## 標準プラグイン

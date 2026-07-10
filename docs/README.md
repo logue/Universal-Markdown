@@ -14,6 +14,7 @@ Universal Markdown (UMD) の主要ドキュメントへの入口です。
 - **コメント構文の仕様を確認したい** → [comment-syntax.md](comment-syntax.md)
 - **メディアタグ変換の仕様を確認したい** → [media-tags.md](media-tags.md)
 - **プラグイン仕様を確認したい** → [plugin-system.md](plugin-system.md)
+- **ブロック型プラグインを確認したい** → [block-plugins.md](block-plugins.md)
 - **インライン型プラグインの一覧を確認したい** → [inline-plugins.md](inline-plugins.md)
 - **テーブル機能を確認したい** → [table-features.md](table-features.md)
 - **実行時機能（フロントマター・脚注）を確認したい** → [runtime-features.md](runtime-features.md)
