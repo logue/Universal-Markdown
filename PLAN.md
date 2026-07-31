@@ -3,22 +3,22 @@
 **プロジェクト概要**: Markdownを超える次世代マークアップ言語。CommonMark仕様テスト 75%+ パス、Bootstrap 5統合、セマンティックHTML、拡張可能なプラグインシステム提供。
 
 **作成日**: 2026年1月23日  
-**最終更新**: 2026年7月6日  
-**Rustバージョン**: 1.96.1 (Edition 2024)  
+**最終更新**: 2026年7月31日  
+**Rustバージョン**: 1.97.1 (Edition 2024)  
 **ライセンス**: Apache-2.0
 
 ### 主要ライブラリ
 
 | ライブラリ          | バージョン | 用途                                     |
 | ------------------- | ---------- | ---------------------------------------- |
-| comrak              | 0.52.0     | Markdown パーサー (GFM)                  |
-| ammonia             | 4.1.2      | HTML サニタイズ                          |
+| comrak              | 0.54.0     | Markdown パーサー (GFM)                  |
+| ammonia             | 4.1.3      | HTML サニタイズ                          |
 | maud                | 0.27.0     | 型安全 HTML 生成                         |
-| regex               | 1.12.3     | パターンマッチング                       |
+| regex               | 1.12.4     | パターンマッチング                       |
 | wasm-bindgen        | 0.2.120    | WASM バインディング                      |
 | syntect             | 5.3.0      | シンタックスハイライト（ネイティブのみ） |
 | mermaid-rs-renderer | 0.2.2      | Mermaid SSR レンダリング                 |
-| math-core           | 0.6.0      | LaTeX to MathML 変換                     |
+| math-core           | 0.7.0      | LaTeX to MathML 変換                     |
 
 ---
 
