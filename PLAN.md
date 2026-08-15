@@ -310,6 +310,20 @@ Subresource Integrity (SRI) 相当のハッシュ検証をリンク・画像に�
 
 ---
 
+## 最近の実装（2026年8月）
+
+### 2026年8月15日
+
+#### Bidi対策のコードブロック向けオプション化
+
+- `ParserOptions.allow_bidi_in_code_blocks`（デフォルト: `false`）を追加
+- 無効時（デフォルト）: BiDi制御文字（`U+202A`-`U+202E` / `U+2066`-`U+2069`）はコードブロック内外を問わず除去
+- 有効時: フェンス付きコードブロック（` ``` ` / `~~~`）内に限り BiDi制御文字を保持（RTLコードサンプルやTrojan Source型攻撃のデモ表示用途）。コードブロック外のBiDi制御文字、およびゼロ幅文字等の他の不可視文字はオプションの値に関わらず常に除去
+- `src/sanitizer.rs` に `sanitize_opts` / `remove_disallowed_blank_chars_opts` を追加し、既存の `remove_ascii_control_chars_from_markup` と同じフェンス検出ロジックを共有
+- `SECURITY.md` の記載を実際の挙動（コードブロック内も含めデフォルトで全除去）に合わせて修正
+
+**テスト**: `sanitizer` 単体テスト7件追加、`tests/bidi_code_block_option.rs` 統合テスト3件追加
+
 ## 最近の実装（2026年4月〜5月）
 
 - Rust バージョンを 1.95.0 にアップデート

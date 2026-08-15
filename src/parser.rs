@@ -67,6 +67,15 @@ pub struct ParserOptions {
     pub max_inline_nesting: Option<u8>,
     /// Icon configuration (media fallback links and inline code enhancements)
     pub icons: Icons,
+    /// Allow BiDi control characters (`U+202A`-`U+202E`, `U+2066`-`U+2069`)
+    /// to survive inside fenced code blocks (` ``` ` / `~~~`).
+    ///
+    /// Disabled by default for safer behavior: BiDi control characters are
+    /// stripped everywhere, including inside code blocks, to prevent
+    /// Trojan Source-style visual spoofing attacks. Enable only when you
+    /// trust the source content and need to display RTL code samples or
+    /// BiDi-attack demonstrations verbatim.
+    pub allow_bidi_in_code_blocks: bool,
 }
 
 impl Default for ParserOptions {
@@ -79,6 +88,7 @@ impl Default for ParserOptions {
             allow_fragment_extension_hint: false,
             max_inline_nesting: Some(5),
             icons: Icons::default(),
+            allow_bidi_in_code_blocks: false,
         }
     }
 }

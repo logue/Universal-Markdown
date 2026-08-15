@@ -242,7 +242,7 @@ pub fn parse_with_frontmatter_opts(input: &str, options: &parser::ParserOptions)
     let preprocessed = sanitizer::remove_ascii_control_chars_from_markup(&preprocessed);
 
     // Step 5: Sanitize input
-    let sanitized = sanitizer::sanitize(&preprocessed);
+    let sanitized = sanitizer::sanitize_opts(&preprocessed, options.allow_bidi_in_code_blocks);
 
     // Step 6: Parse with comrak-based parser
     let html = parser::parse_to_html(&sanitized, options);

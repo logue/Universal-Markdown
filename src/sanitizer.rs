@@ -98,7 +98,24 @@ pub fn sanitize_url(url: &str) -> Cow<'_, str> {
 /// assert_eq!(output, "Hello&nbsp;World &lt;tag&gt;");
 /// ```
 pub fn sanitize(input: &str) -> Cow<'_, str> {
-    let normalized = remove_disallowed_blank_chars(input);
+    sanitize_opts(input, false)
+}
+
+/// Sanitizes input text, same as [`sanitize`], but allows configuring whether
+/// BiDi control characters are preserved inside fenced code blocks.
+///
+/// # Arguments
+///
+/// * `input` - The raw input text to sanitize
+/// * `allow_bidi_in_code_blocks` - When `true`, BiDi control characters
+///   (`U+202A`-`U+202E`, `U+2066`-`U+2069`) are left untouched inside fenced
+///   code blocks (` ``` ` / `~~~`), so RTL-heavy code samples or BiDi-attack
+///   demonstrations can be shown verbatim. All other disallowed invisible
+///   characters (zero-width chars, BOM) are still stripped everywhere, and
+///   BiDi characters outside code blocks are always removed regardless of
+///   this flag. Defaults to `false` (disabled) via [`sanitize`].
+pub fn sanitize_opts(input: &str, allow_bidi_in_code_blocks: bool) -> Cow<'_, str> {
+    let normalized = remove_disallowed_blank_chars_opts(input, allow_bidi_in_code_blocks);
     let source = normalized.as_ref();
 
     // Check if input contains any characters that need escaping
@@ -143,6 +160,71 @@ fn remove_disallowed_blank_chars(input: &str) -> Cow<'_, str> {
     Cow::Owned(filtered)
 }
 
+/// Same as [`remove_disallowed_blank_chars`], but when `allow_bidi_in_code_blocks`
+/// is `true`, BiDi control characters inside fenced code blocks (` ``` ` / `~~~`)
+/// are preserved instead of stripped. Other disallowed invisible characters are
+/// still removed everywhere, and code fence detection mirrors
+/// [`remove_ascii_control_chars_from_markup`].
+fn remove_disallowed_blank_chars_opts(
+    input: &str,
+    allow_bidi_in_code_blocks: bool,
+) -> Cow<'_, str> {
+    if !allow_bidi_in_code_blocks {
+        return remove_disallowed_blank_chars(input);
+    }
+
+    if !input.chars().any(is_disallowed_blank_char) {
+        return Cow::Borrowed(input);
+    }
+
+    let ends_with_newline = input.ends_with('\n');
+    let mut result = String::with_capacity(input.len());
+    let mut in_code_block = false;
+    let mut code_fence_char = '`';
+
+    for line in input.lines() {
+        let trimmed = line.trim_start();
+
+        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            let fence_char = if trimmed.starts_with("```") { '`' } else { '~' };
+            if !in_code_block {
+                in_code_block = true;
+                code_fence_char = fence_char;
+            } else if fence_char == code_fence_char {
+                in_code_block = false;
+            }
+            result.push_str(line);
+            result.push('\n');
+            continue;
+        }
+
+        for c in line.chars() {
+            let skip = if in_code_block {
+                is_disallowed_blank_char(c) && !is_bidi_control_char(c)
+            } else {
+                is_disallowed_blank_char(c)
+            };
+            if !skip {
+                result.push(c);
+            }
+        }
+        result.push('\n');
+    }
+
+    if !ends_with_newline && result.ends_with('\n') {
+        result.pop();
+    }
+
+    Cow::Owned(result)
+}
+
+/// Returns true for BiDi control characters that can be used to visually
+/// spoof text direction (Trojan Source style attacks): LRE, RLE, PDF, LRO,
+/// RLO (`U+202A`-`U+202E`) and LRI, RLI, FSI, PDI (`U+2066`-`U+2069`).
+fn is_bidi_control_char(ch: char) -> bool {
+    ('\u{202A}'..='\u{202E}').contains(&ch) || ('\u{2066}'..='\u{2069}').contains(&ch)
+}
+
 fn is_disallowed_blank_char(ch: char) -> bool {
     matches!(
         ch,
@@ -151,8 +233,7 @@ fn is_disallowed_blank_char(ch: char) -> bool {
             | '\u{200D}' // Zero Width Joiner
             | '\u{FEFF}' // Zero Width No-Break Space / BOM
             | '\u{3164}' // Hangul Filler
-    ) || ('\u{202A}'..='\u{202E}').contains(&ch) // LRE, RLE, PDF, LRO, RLO
-        || ('\u{2066}'..='\u{2069}').contains(&ch) // LRI, RLI, FSI, PDI
+    ) || is_bidi_control_char(ch)
 }
 
 /// Returns true for ASCII C0 control characters (except TAB, LF, CR) and DEL.
@@ -368,6 +449,30 @@ mod tests {
     fn test_remove_bidi_control_chars() {
         let input = "A\u{202A}B\u{202E}C\u{2066}D\u{2069}E";
         assert_eq!(sanitize(input), "ABCDE");
+    }
+
+    #[test]
+    fn test_bidi_still_removed_in_code_blocks_by_default() {
+        let input = "```\nA\u{202E}B\n```\n";
+        assert_eq!(sanitize(input), "```\nAB\n```\n");
+    }
+
+    #[test]
+    fn test_bidi_preserved_in_code_blocks_when_opted_in() {
+        let input = "```\nA\u{202E}B\n```\n";
+        assert_eq!(sanitize_opts(input, true), "```\nA\u{202E}B\n```\n");
+    }
+
+    #[test]
+    fn test_bidi_still_removed_outside_code_blocks_when_opted_in() {
+        let input = "A\u{202E}B\n```\nC\u{202E}D\n```\nE\u{2066}F";
+        assert_eq!(sanitize_opts(input, true), "AB\n```\nC\u{202E}D\n```\nEF");
+    }
+
+    #[test]
+    fn test_other_invisible_chars_still_removed_in_code_blocks_when_opted_in() {
+        let input = "```\nA\u{200B}B\n```\n";
+        assert_eq!(sanitize_opts(input, true), "```\nAB\n```\n");
     }
 
     #[test]
