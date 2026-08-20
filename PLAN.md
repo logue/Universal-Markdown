@@ -297,6 +297,38 @@ Subresource Integrity (SRI) 相当のハッシュ検証をリンク・画像に�
 
 ---
 
+## Bootstrap依存の削減とリファレンスCSS
+
+### 概要（脱Bootstrap化）
+
+現在Bootstrap 5のユーティリティクラス（`d-block`、`text-primary`など）に依存して出力しているHTMLを、Bootstrap本体への依存から切り離し、CSS Layer（`@layer`）を使ったミニマムなリファレンスCSSで置き換える計画です。
+
+### 基本ルール（脱Bootstrap化）
+
+1. CSS Layerを用いたリファレンスCSSを新設し、Bootstrap本体を必須依存から外す
+2. Bootstrapのユーティリティクラス名は、UMD独自のプレフィックスへ改名する（例: `d-block` → `umd-block` など）。具体的な命名規則は未定
+3. **意味を持たない色指定**（`blue` / `red` / `green` など、Bootstrapの標準カラー名）はそのままのクラス名・命名を踏襲する
+4. **意味を持つ色指定**（`primary` / `danger` / `success` など、役割に基づく色）はCSSにハードコーディングせず、ホスト側がオプションで実際の色（CSS変数やクラス名）を指定できるようにする
+
+### 検討事項（脱Bootstrap化）
+
+- ユーティリティクラスの具体的な命名規則（プレフィックスの形式、既存Bootstrapクラスとの対応表）
+- 意味を持つ色（`primary`/`danger`等）のオプション指定方法（CSS変数、テーマ設定オブジェクト、ビルド時設定など）の具体化
+- 既存のBootstrap前提ドキュメント（`docs/architecture.md`等）との整合、移行パス（Bootstrap版との共存可否）
+- リファレンスCSSの配布方法（npm パッケージ、CDN、生成物としてのみ提供 等）
+
+### 実装計画（脱Bootstrap化）
+
+- [ ] CSS Layer構成の設計（`@layer umd, umd-overrides` 等の層構造）
+- [ ] クラス名改名マッピングの確定
+- [ ] 意味を持つ色のオプション指定機構の設計・実装
+- [ ] ミニマムなリファレンスCSSの実装
+- [ ] Bootstrap依存コードの置き換え（`src/extensions/` 配下のクラス生成箇所）
+- [ ] 既存テスト（`bootstrap_integration.rs` 等）の移行方針検討
+- [ ] ドキュメント更新
+
+---
+
 ## テスト結果
 
 **総テスト数**: 308 tests (discoverable) ✅
