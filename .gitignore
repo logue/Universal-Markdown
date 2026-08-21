@@ -1,24 +1,28 @@
+# Dependencies
+node_modules/
+.claude/
+
 # Rust
 /target/
-Cargo.lock
-
-# WASM build output
 /pkg/
-/wasm-pack.log
+
+# Lockfiles / logs
+*.lock
+*.log
+# pnpm-lock.yaml # as you need to commit this file for reproducible builds
+# pnpm-workspace.yaml # as you need to commit this file for reproducible builds
 
 # IDE
-.vscode/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
 .idea/
-*.swp
-*.swo
-*~
-
-# macOS
-.DS_Store
-
-# Node (if using npm for testing)
-node_modules/
-package-lock.json
 
 # Test snapshots
 *.snap.new
+
+# Local
+.DS_Store
+Thumbs.db
+*.local
+*.log*

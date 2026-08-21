@@ -1,0 +1,12 @@
+{
+  "chat.tools.terminal.autoApprove": {
+    "/^cargo init --lib --name lukiwiki-parser --edition 2024$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^cargo test$/": {
+      "approve": true,
+      "matchCommandLine": true
+    }
+  }
+}
