@@ -165,6 +165,92 @@ fn get_mime_type_with_hint(
     .to_string()
 }
 
+#[derive(Debug, Default)]
+struct MediaAttributes {
+    size: Option<MediaSize>,
+    integrity: Vec<String>,
+}
+
+#[derive(Debug)]
+enum MediaSize {
+    Width(String),
+    Dimensions(String, String),
+}
+
+fn parse_media_attributes(parameters: Option<&str>) -> MediaAttributes {
+    let mut attributes = MediaAttributes::default();
+
+    for token in parameters.unwrap_or_default().split(',').map(str::trim) {
+        if token.is_empty() {
+            continue;
+        }
+
+        if token
+            .strip_prefix("sha256-")
+            .or_else(|| token.strip_prefix("sha384-"))
+            .or_else(|| token.strip_prefix("sha512-"))
+            .is_some_and(is_base64)
+        {
+            attributes.integrity.push(token.to_string());
+            continue;
+        }
+
+        let size = if let Some(width) = token.strip_suffix('%') {
+            width
+                .chars()
+                .all(|c| c.is_ascii_digit())
+                .then(|| MediaSize::Width(format!("{}%", width)))
+        } else if let Some((width, height)) = token.split_once('x') {
+            (width.chars().all(|c| c.is_ascii_digit())
+                && height.chars().all(|c| c.is_ascii_digit()))
+            .then(|| MediaSize::Dimensions(width.to_string(), height.to_string()))
+        } else {
+            token
+                .chars()
+                .all(|c| c.is_ascii_digit())
+                .then(|| MediaSize::Width(token.to_string()))
+        };
+
+        if attributes.size.is_none() {
+            attributes.size = size;
+        }
+    }
+
+    attributes
+}
+
+fn is_base64(value: &str) -> bool {
+    !value.is_empty()
+        && value
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '+' | '/' | '='))
+}
+
+impl MediaAttributes {
+    fn size_attributes(&self) -> String {
+        match &self.size {
+            Some(MediaSize::Width(width)) if width.ends_with('%') => {
+                format!(" style=\"width: {}\"", escape_html(width))
+            }
+            Some(MediaSize::Width(width)) => format!(" width=\"{}\"", escape_html(width)),
+            Some(MediaSize::Dimensions(width, height)) => format!(
+                " width=\"{}\" height=\"{}\"",
+                escape_html(width),
+                escape_html(height)
+            ),
+            None => String::new(),
+        }
+    }
+
+    fn integrity_attribute(&self) -> String {
+        if self.integrity.is_empty() {
+            String::new()
+        } else {
+            format!(" integrity=\"{}\"", escape_html(&self.integrity.join(" ")))
+        }
+    }
+}
+
 /// Generate HTML for media element
 ///
 /// # Arguments
@@ -195,7 +281,7 @@ pub fn generate_media_html(
     media_type: &MediaType,
     icons: &crate::parser::Icons,
 ) -> String {
-    generate_media_html_with_hint(url, alt, title, media_type, icons, false)
+    generate_media_html_with_hint(url, alt, title, media_type, icons, false, None)
 }
 
 fn generate_media_html_with_hint(
@@ -205,8 +291,10 @@ fn generate_media_html_with_hint(
     media_type: &MediaType,
     icons: &crate::parser::Icons,
     allow_fragment_extension_hint: bool,
+    parameters: Option<&str>,
 ) -> String {
     let mime_type = get_mime_type_with_hint(url, media_type, allow_fragment_extension_hint);
+    let media_attributes = parse_media_attributes(parameters);
     let title_attr = title
         .map(|t| format!(" title=\"{}\"", escape_html(t)))
         .unwrap_or_default();
@@ -216,12 +304,14 @@ fn generate_media_html_with_hint(
             let track_label = escape_html(alt);
             let display_text = if alt.is_empty() { url } else { alt };
             format!(
-                "<video controls{}>\n  <source src=\"{}\" type=\"{}\" />\n  <track kind=\"captions\" label=\"{}\" />\n  <a href=\"{}\" download class=\"download-link video-fallback\">{} {}</a>\n</video>",
-                title_attr,
+                "<video controls{}>\n  <source src=\"{}\" type=\"{}\"{} />\n  <track kind=\"captions\" label=\"{}\" />\n  <a href=\"{}\" download class=\"download-link video-fallback\"{}>{} {}</a>\n</video>",
+                format!("{}{}", title_attr, media_attributes.size_attributes()),
                 escape_html(url),
                 mime_type,
+                media_attributes.integrity_attribute(),
                 track_label,
                 escape_html(url),
+                media_attributes.integrity_attribute(),
                 icons.video,
                 escape_html(display_text)
             )
@@ -229,11 +319,13 @@ fn generate_media_html_with_hint(
         MediaType::Audio => {
             let display_text = if alt.is_empty() { url } else { alt };
             format!(
-                "<audio controls{}>\n  <source src=\"{}\" type=\"{}\" />\n  <a href=\"{}\" download class=\"download-link audio-fallback\">{} {}</a>\n</audio>",
-                title_attr,
+                "<audio controls{}>\n  <source src=\"{}\" type=\"{}\"{} />\n  <a href=\"{}\" download class=\"download-link audio-fallback\"{}>{} {}</a>\n</audio>",
+                format!("{}{}", title_attr, media_attributes.size_attributes()),
                 escape_html(url),
                 mime_type,
+                media_attributes.integrity_attribute(),
                 escape_html(url),
+                media_attributes.integrity_attribute(),
                 icons.audio,
                 escape_html(display_text)
             )
@@ -243,10 +335,11 @@ fn generate_media_html_with_hint(
                 .map(|t| format!(" title=\"{}\"", escape_html(t)))
                 .unwrap_or_default();
             format!(
-                "<picture{}>\n  <source srcset=\"{}\" type=\"{}\" />\n  <img src=\"{}\" alt=\"{}\" loading=\"lazy\" class=\"img-fluid\"{} />\n</picture>",
-                title_attr,
+                "<picture{}>\n  <source srcset=\"{}\" type=\"{}\"{} />\n  <img src=\"{}\" alt=\"{}\" loading=\"lazy\" class=\"img-fluid\"{} />\n</picture>",
+                format!("{}{}", title_attr, media_attributes.size_attributes()),
                 escape_html(url),
                 mime_type,
+                media_attributes.integrity_attribute(),
                 escape_html(url),
                 escape_html(alt),
                 img_title
@@ -255,9 +348,11 @@ fn generate_media_html_with_hint(
         MediaType::Downloadable => {
             let display_text = if alt.is_empty() { url } else { alt };
             format!(
-                "<a href=\"{}\" download class=\"download-link\"{}>\n  {} {}\n</a>",
+                "<a href=\"{}\" download class=\"download-link\"{}{}{}>\n  {} {}\n</a>",
                 escape_html(url),
                 title_attr,
+                media_attributes.size_attributes(),
+                media_attributes.integrity_attribute(),
                 icons.download,
                 escape_html(display_text)
             )
@@ -306,9 +401,10 @@ pub fn transform_images_to_media(
     use regex::Regex;
 
     // Pattern to match <img> tags with src and alt attributes
-    let img_re =
-        Regex::new(r#"<img\s+src="([^"]+)"(?:\s+alt="([^"]*)")?(?:\s+title="([^"]*)")?\s*/>"#)
-            .unwrap();
+    let img_re = Regex::new(
+        r#"<img\s+src="([^"]+)"(?:\s+alt="([^"]*)")?(?:\s+title="([^"]*)")?\s*/>(?:\{([^{}\n]*)\})?"#,
+    )
+    .unwrap();
 
     let transformed = img_re
         .replace_all(html, |caps: &regex::Captures| {
@@ -327,18 +423,23 @@ pub fn transform_images_to_media(
                     &media_type,
                     icons,
                     allow_fragment_extension_hint,
+                    caps.get(4).map(|m| m.as_str()),
                 )
             } else {
                 // Not a recognized media file, wrap in <picture> tag anyway
+                let media_attributes = parse_media_attributes(caps.get(4).map(|m| m.as_str()));
                 let title_attr = title
-                    .map(|t| format!(" title=\"{}\"", t))
+                    .map(|t| format!(" title=\"{}\"", escape_html(t)))
                     .unwrap_or_default();
                 let img_title = title
-                    .map(|t| format!(" title=\"{}\"", t))
+                    .map(|t| format!(" title=\"{}\"", escape_html(t)))
                     .unwrap_or_default();
                 format!(
                     "<picture{}>\n  <img src=\"{}\" alt=\"{}\" loading=\"lazy\" class=\"img-fluid\"{} />\n</picture>",
-                    title_attr, url, alt, img_title
+                    format!("{}{}", title_attr, media_attributes.size_attributes()),
+                    escape_html(url),
+                    escape_html(alt),
+                    img_title
                 )
             }
         })
@@ -723,5 +824,62 @@ mod tests {
         let transformed = transform_images_to_media(html, &crate::parser::Icons::default(), true);
         assert!(transformed.contains("<picture"));
         assert!(transformed.contains("type=\"image/png\""));
+    }
+
+    #[test]
+    fn test_transform_media_parameters() {
+        let html = r#"<img src="movie.mp4" alt="Movie" />{75%, sha256-abc123==, sha384-def456==}"#;
+        let transformed = transform_images_to_media(html, &crate::parser::Icons::default(), false);
+
+        assert!(transformed.contains(r#"<video controls style="width: 75%">"#));
+        assert!(
+            transformed
+                .contains(r#"type="video/mp4" integrity="sha256-abc123== sha384-def456==" />"#)
+        );
+        assert!(transformed.contains(
+            r#"class="download-link video-fallback" integrity="sha256-abc123== sha384-def456==""#
+        ));
+        assert!(!transformed.contains("{75%"));
+    }
+
+    #[test]
+    fn test_markdown_media_parameters_are_transformed() {
+        let output = crate::parse("![Movie](movie.mp4){75%}");
+
+        assert!(output.contains(r#"<video controls style="width: 75%">"#));
+        assert!(!output.contains("{75%}"));
+    }
+
+    #[test]
+    fn test_transform_image_dimensions_and_download_integrity() {
+        let image = transform_images_to_media(
+            r#"<img src="photo.png" alt="Photo" />{320x240}"#,
+            &crate::parser::Icons::default(),
+            false,
+        );
+        assert!(image.contains(r#"<picture width="320" height="240">"#));
+
+        let download = transform_images_to_media(
+            r#"<img src="manual.pdf" alt="Manual" />{sha512-ghi789==}"#,
+            &crate::parser::Icons::default(),
+            false,
+        );
+        assert!(download.contains(
+            r#"<a href="manual.pdf" download class="download-link" integrity="sha512-ghi789==">"#
+        ));
+    }
+
+    #[test]
+    fn test_transform_media_parameters_ignores_invalid_and_duplicate_sizes() {
+        let transformed = transform_images_to_media(
+            r#"<img src="audio.mp3" alt="Audio" />{bad, 400, 800, sha256-not valid}"#,
+            &crate::parser::Icons::default(),
+            false,
+        );
+
+        assert!(transformed.contains(r#"<audio controls width="400">"#));
+        assert!(!transformed.contains("800"));
+        assert!(!transformed.contains("integrity="));
+        assert!(!transformed.contains("{bad"));
     }
 }

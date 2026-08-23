@@ -1,6 +1,6 @@
 # メディアタグ自動検出
 
-**最終更新**: 2026年5月18日
+**最終更新**: 2026年8月23日
 
 画像記法 `![alt](url)` から、拡張子ベースでメディア HTML に変換する仕様です。
 
@@ -70,6 +70,124 @@
 ```html
 <a href="..." download class="download-link" title="...">...</a>
 ```
+
+## 拡張パラメータ（`{}` 構文）
+
+画像記法の URL の直後に `{...}` ブロックを付加することで、サイズと整合性ハッシュを指定できます。
+
+```
+![alt](url){パラメータ, ...}
+```
+
+パラメータはカンマ区切りで複数指定できます。順序は問いません。
+
+### トークン種別と字句規則
+
+`{}` 内のトークンは字句的に型が決まります。文法の曖昧さはありません。
+
+| トークン形式      | 種別                | 例                 |
+| ----------------- | ------------------- | ------------------ |
+| `[0-9]+%`         | 幅（パーセント）    | `75%`              |
+| `[0-9]+x[0-9]+`   | 幅×高さ（ピクセル） | `320x240`          |
+| `[0-9]+`          | 幅（ピクセル）      | `320`              |
+| `sha256-<base64>` | SRI ハッシュ        | `sha256-abc123...` |
+| `sha384-<base64>` | SRI ハッシュ        | `sha384-def456...` |
+| `sha512-<base64>` | SRI ハッシュ        | `sha512-ghi789...` |
+
+- `sha256-`・`sha384-`・`sha512-` で始まるトークン → 整合性ハッシュ（SRI）
+- 数値・パーセント・`x` 区切りのトークン → サイズ指定
+- サイズ指定は最大 1 つ。SRI ハッシュは複数指定可能。
+
+### サイズ指定
+
+```markdown
+![動画](movie.mp4){75%}
+![画像](photo.jpg){320x240}
+![音声](track.mp3){400}
+```
+
+出力への影響:
+
+- パーセント・ピクセル幅のみ → `style="width: 75%"` または `width="320"` を外側要素に付加
+- `幅x高さ` → `width="320" height="240"` を外側要素に付加
+- 動画・音声・`<picture>` の直接の親要素（`<video>`, `<audio>`, `<picture>`）に適用
+
+### SRI（Subresource Integrity）
+
+```markdown
+![動画](movie.mp4){sha256-abc123==, sha384-def456==}
+![音声](track.mp3){sha512-ghi789==}
+![画像](photo.png){sha256-abc123==}
+```
+
+出力への影響:
+
+- `<source>` タグに `integrity="sha256-abc123== sha384-def456=="` を付加（スペース区切りで結合）
+- フォールバックの `<a download>` タグにも同じ `integrity` 属性を付加
+- `<picture>` の `<source>` にも同様に付加
+
+動画の出力例:
+
+```html
+<video controls title="...">
+  <source
+    src="movie.mp4"
+    type="video/mp4"
+    integrity="sha256-abc123== sha384-def456=="
+  />
+  <track kind="captions" label="..." />
+  <a
+    href="movie.mp4"
+    download
+    class="download-link video-fallback"
+    integrity="sha256-abc123== sha384-def456=="
+    >...</a
+  >
+</video>
+```
+
+### サイズと SRI の組み合わせ
+
+```markdown
+![動画](movie.mp4){75%, sha256-abc123==, sha384-def456==}
+```
+
+出力例:
+
+```html
+<video controls title="..." style="width: 75%">
+  <source
+    src="movie.mp4"
+    type="video/mp4"
+    integrity="sha256-abc123== sha384-def456=="
+  />
+  <track kind="captions" label="..." />
+  <a
+    href="movie.mp4"
+    download
+    class="download-link video-fallback"
+    integrity="sha256-abc123== sha384-def456=="
+  >
+    ...
+  </a>
+</video>
+```
+
+### メディア種別ごとの適用範囲
+
+| メディア種別 | サイズ             | SRI（`<source>`） | SRI（`<a download>`） |
+| ------------ | ------------------ | ----------------- | --------------------- |
+| 動画         | `<video>` に付加   | ✅                | ✅                    |
+| 音声         | `<audio>` に付加   | ✅                | ✅                    |
+| 画像         | `<picture>` に付加 | ✅                | —                     |
+| ダウンロード | `<a>` に付加       | —                 | ✅                    |
+
+### 不正トークンの扱い
+
+- 認識できないトークンは無視し、警告は出力しません。
+- サイズトークンが複数あった場合、最初のものを採用します。
+
+---
 
 ## 表示ルール
 
