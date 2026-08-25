@@ -61,13 +61,19 @@ pub fn apply_extensions_with_headers(
         &options.icons,
         options.allow_fragment_extension_hint,
     );
-    result = conflict_resolver::postprocess_conflicts(&result, header_map);
+    result = conflict_resolver::postprocess_conflicts_with_options(
+        &result,
+        header_map,
+        options.allow_hex_colors,
+    );
     result = emphasis::apply_umd_emphasis(&result);
     result = block_decorations::apply_block_placement(&result); // Apply block placement first
-    result = block_decorations::apply_block_decorations(&result);
-    result = inline_decorations::apply_inline_decorations_with_limit(
+    result =
+        block_decorations::apply_block_decorations_with_options(&result, options.allow_hex_colors);
+    result = inline_decorations::apply_inline_decorations_with_limit_and_options(
         &result,
         options.max_inline_nesting.map(usize::from),
+        options.allow_hex_colors,
     );
 
     // Apply base URL resolution to links

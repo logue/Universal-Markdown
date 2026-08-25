@@ -42,23 +42,35 @@ fn test_gfm_alert_tip() {
 
 #[test]
 fn test_badge_basic() {
-    let input = "Check this &badge(primary){New};";
+    let input = "Check this &badge(blue){New};";
     let output = parse(input);
-    assert!(output.contains(r#"<span class="badge bg-primary">New</span>"#));
+    assert!(output.contains(r#"<span class="badge bg-blue">New</span>"#));
 }
 
 #[test]
 fn test_badge_with_link() {
-    let input = "&badge(danger){[Error](/error)};";
+    let input = "&badge(red){[Error](/error)};";
     let output = parse(input);
-    assert!(output.contains(r#"<a href="/error" class="badge bg-danger">Error</a>"#));
+    assert!(output.contains(r#"<a href="/error" class="badge bg-red">Error</a>"#));
 }
 
 #[test]
 fn test_color_bootstrap_class() {
-    let input = "&color(primary){Primary text};";
+    let input = "&color(blue){Blue text};";
     let output = parse(input);
-    assert!(output.contains(r#"class="text-primary""#));
+    assert!(output.contains(r#"class="text-blue""#));
+}
+
+#[test]
+fn test_hex_colors_are_disabled_by_default() {
+    let input = "&color(#FF5733){Custom hex color};";
+    let output = parse(input);
+    assert_eq!(output, "<p>Custom hex color</p>");
+
+    let mut options = umd::parser::ParserOptions::default();
+    options.allow_hex_colors = true;
+    let enabled = umd::parse_with_frontmatter_opts(input, &options).html;
+    assert!(enabled.contains(r#"style="color: #FF5733""#));
 }
 
 #[test]
@@ -130,9 +142,9 @@ fn test_size_custom_value() {
 
 #[test]
 fn test_block_color_bootstrap() {
-    let input = "COLOR(success): This is a success message";
+    let input = "COLOR(green): This is a green message";
     let output = parse(input);
-    assert!(output.contains(r#"class="text-success""#));
+    assert!(output.contains(r#"class="text-green""#));
 }
 
 #[test]
@@ -187,12 +199,12 @@ fn test_block_placement_center_for_block_plugin() {
 
 #[test]
 fn test_compound_prefixes() {
-    let input = "SIZE(1.5): COLOR(primary): CENTER: Styled text";
+    let input = "SIZE(1.5): COLOR(blue): CENTER: Styled text";
     let output = parse(input);
     // Order may vary
     assert!(output.contains(r#"class="#));
     assert!(output.contains("fs-4"));
-    assert!(output.contains("text-primary"));
+    assert!(output.contains("text-blue"));
     assert!(output.contains("text-center"));
 }
 
@@ -237,7 +249,7 @@ fn test_mixed_bootstrap_features() {
     let input = r#"
 # Heading
 
-&badge(info){New}; This is &color(primary){important}; text.
+&badge(cyan){New}; This is &color(blue){important}; text.
 
 | TOP: Header | MIDDLE: Data |
 |-------------|--------------|
@@ -248,8 +260,8 @@ fn test_mixed_bootstrap_features() {
     let output = parse(input);
 
     // Check all features are present
-    assert!(output.contains(r#"class="badge bg-info""#));
-    assert!(output.contains(r#"class="text-primary""#));
+    assert!(output.contains(r#"class="badge bg-cyan""#));
+    assert!(output.contains(r#"class="text-blue""#));
     // UMD table syntax (because of TOP: and MIDDLE: prefixes)
     assert!(output.contains(r#"class="table umd-table""#));
     assert!(output.contains(r#"class="align-top""#));
@@ -473,7 +485,7 @@ fn test_inline_code_hex_color_adds_swatch() {
     let output = parse(input);
     assert!(
         output.contains(
-            r#"<code>#ffce44<span class="inline-code-color" style="background-color: #ffce44;"></span></code>"#
+            r#"<code><span class="inline-code-color" style="background-color: #ffce44;"><span class="bi bi-palette-fill" aria-hidden="true"></span></span>#ffce44</code>"#
         ),
         "output: {}",
         output
@@ -493,7 +505,7 @@ fn test_inline_code_function_color_adds_swatch() {
         let input = format!("`{}`", color);
         let output = parse(&input);
         let expected = format!(
-            r#"<code>{}<span class="inline-code-color" style="background-color: {};"></span></code>"#,
+            r#"<code><span class="inline-code-color" style="background-color: {};"><span class="bi bi-palette-fill" aria-hidden="true"></span></span>{}</code>"#,
             color, color
         );
         assert!(

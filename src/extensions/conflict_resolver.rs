@@ -184,52 +184,34 @@ fn map_font_size_value(value: &str) -> (bool, String) {
 
 /// Map color value to Bootstrap class or inline style
 fn map_color_value(value: &str, is_background: bool) -> Option<(bool, String)> {
+    map_color_value_with_options(value, is_background, false)
+}
+
+fn map_color_value_with_options(
+    value: &str,
+    is_background: bool,
+    allow_hex_colors: bool,
+) -> Option<(bool, String)> {
     let trimmed = value.trim();
 
-    // Bootstrap theme colors (14) + custom colors (10)
-    let bootstrap_colors = [
-        // Theme colors
-        "primary",
-        "secondary",
-        "success",
-        "danger",
-        "warning",
-        "info",
-        "light",
-        "dark",
-        "body",
-        "body-secondary",
-        "body-tertiary",
-        "body-emphasis",
-        // Custom colors
-        "blue",
-        "indigo",
-        "purple",
-        "pink",
-        "red",
-        "orange",
-        "yellow",
-        "green",
-        "teal",
-        "cyan",
+    let colors = [
+        "blue", "indigo", "purple", "pink", "red", "orange", "yellow", "green", "teal", "cyan",
     ];
 
     let prefix = if is_background { "bg" } else { "text" };
 
-    // Check if it's a Bootstrap color or variant
-    for color in &bootstrap_colors {
-        if trimmed == *color || trimmed.starts_with(&format!("{}-", color)) {
+    for color in colors {
+        if trimmed == color {
             return Some((true, format!("{}-{}", prefix, trimmed)));
         }
     }
 
-    // Validate HEX color format (#RGB or #RRGGBB)
-    // TODO: Future support for rgb() and hsl() formats
-    if trimmed.starts_with('#') && (trimmed.len() == 4 || trimmed.len() == 7) {
-        // Validate all characters after # are hex digits
-        if trimmed[1..].chars().all(|c| c.is_ascii_hexdigit()) {
-            return Some((false, trimmed.to_string()));
-        }
+    if allow_hex_colors
+        && trimmed.starts_with('#')
+        && (trimmed.len() == 4 || trimmed.len() == 7)
+        && trimmed[1..].chars().all(|c| c.is_ascii_hexdigit())
+    {
+        return Some((false, trimmed.to_string()));
     }
 
     // Invalid color - reject
@@ -365,7 +347,12 @@ pub fn preprocess_conflicts(input: &str) -> (String, HeaderIdMap) {
 
 /// Convert inline decoration function to HTML
 /// Returns None if not a decoration function
-fn convert_inline_decoration_to_html(function: &str, args: &str, content: &str) -> Option<String> {
+fn convert_inline_decoration_to_html(
+    function: &str,
+    args: &str,
+    content: &str,
+    allow_hex_colors: bool,
+) -> Option<String> {
     match function {
         // Simple wrapper tags without content
         "dfn" => Some(format!("<dfn>{}</dfn>", content)),
@@ -417,11 +404,23 @@ fn convert_inline_decoration_to_html(function: &str, args: &str, content: &str) 
         "badge" => {
             // &badge(type){content}; → <span class="badge bg-type">content</span>
             // Support for badge-pill variants and links
-            let badge_class = if args.ends_with("-pill") {
+            let (badge_color, is_pill) = if args.ends_with("-pill") {
                 let color = args.trim_end_matches("-pill");
-                format!("badge rounded-pill bg-{}", color)
+                (color, true)
             } else {
-                format!("badge bg-{}", args)
+                (args, false)
+            };
+            let Some((true, mapped_color)) = map_color_value_with_options(
+                badge_color,
+                true,
+                allow_hex_colors,
+            ) else {
+                return Some(content.to_string());
+            };
+            let badge_class = if is_pill {
+                format!("badge rounded-pill {}", mapped_color)
+            } else {
+                format!("badge {}", mapped_color)
             };
 
             // Check if content contains a Markdown link: [text](url)
@@ -450,7 +449,11 @@ fn convert_inline_decoration_to_html(function: &str, args: &str, content: &str) 
             let mut styles = Vec::new();
 
             if !fg.is_empty() && fg != "inherit" {
-                if let Some((is_class, value)) = map_color_value(fg, false) {
+                if let Some((is_class, value)) = map_color_value_with_options(
+                    fg,
+                    false,
+                    allow_hex_colors,
+                ) {
                     if is_class {
                         classes.push(value);
                     } else {
@@ -460,7 +463,11 @@ fn convert_inline_decoration_to_html(function: &str, args: &str, content: &str) 
             }
 
             if !bg.is_empty() && bg != "inherit" {
-                if let Some((is_class, value)) = map_color_value(bg, true) {
+                if let Some((is_class, value)) = map_color_value_with_options(
+                    bg,
+                    true,
+                    allow_hex_colors,
+                ) {
                     if is_class {
                         classes.push(value);
                     } else {
@@ -753,7 +760,11 @@ fn apply_idn_link_warnings(html: &str) -> String {
         .to_string()
 }
 
-pub fn postprocess_conflicts(html: &str, header_map: &HeaderIdMap) -> String {
+pub fn postprocess_conflicts_with_options(
+    html: &str,
+    header_map: &HeaderIdMap,
+    allow_hex_colors: bool,
+) -> String {
     use crate::extensions::block_decorations;
 
     // First, unescape quotes within markers to allow proper JSON parsing
@@ -869,7 +880,10 @@ pub fn postprocess_conflicts(html: &str, header_map: &HeaderIdMap) -> String {
             if decoration.contains('\n') || placement_only {
                 decoration
             } else {
-                block_decorations::apply_block_decorations(&decoration)
+                block_decorations::apply_block_decorations_with_options(
+                    &decoration,
+                    allow_hex_colors,
+                )
             }
         })
         .to_string();
@@ -907,7 +921,12 @@ pub fn postprocess_conflicts(html: &str, header_map: &HeaderIdMap) -> String {
             }
 
             // Try to convert as inline decoration function
-            if let Some(html) = convert_inline_decoration_to_html(function, args, &content) {
+            if let Some(html) = convert_inline_decoration_to_html(
+                function,
+                args,
+                &content,
+                allow_hex_colors,
+            ) {
                 return html;
             }
 
@@ -1168,6 +1187,10 @@ pub fn postprocess_conflicts(html: &str, header_map: &HeaderIdMap) -> String {
     result = apply_bootstrap_enhancements(&result, &header_map);
 
     result
+}
+
+pub fn postprocess_conflicts(html: &str, header_map: &HeaderIdMap) -> String {
+    postprocess_conflicts_with_options(html, header_map, false)
 }
 
 /// Apply indeterminate task list state to rendered checkboxes.

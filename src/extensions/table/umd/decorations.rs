@@ -111,15 +111,7 @@ pub fn parse_cell_content(cell: &mut Cell) {
 fn is_bootstrap_color(color: &str) -> bool {
     matches!(
         color,
-        "primary"
-            | "secondary"
-            | "success"
-            | "danger"
-            | "warning"
-            | "info"
-            | "light"
-            | "dark"
-            | "blue"
+        "blue"
             | "indigo"
             | "purple"
             | "pink"
@@ -129,19 +121,6 @@ fn is_bootstrap_color(color: &str) -> bool {
             | "green"
             | "teal"
             | "cyan"
-            | "black"
-            | "white"
-            | "gray"
-            | "gray-dark"
-            | "gray-100"
-            | "gray-200"
-            | "gray-300"
-            | "gray-400"
-            | "gray-500"
-            | "gray-600"
-            | "gray-700"
-            | "gray-800"
-            | "gray-900"
     )
 }
 
@@ -222,8 +201,9 @@ mod tests {
 
     #[test]
     fn test_bootstrap_color_check() {
-        assert!(is_bootstrap_color("primary"));
-        assert!(is_bootstrap_color("danger"));
+        assert!(is_bootstrap_color("blue"));
+        assert!(is_bootstrap_color("cyan"));
+        assert!(!is_bootstrap_color("primary"));
         assert!(!is_bootstrap_color("custom-color"));
     }
 }

@@ -110,6 +110,7 @@ struct WasmParseOptions {
     max_inline_nesting: Option<u8>,
     base_url: Option<String>,
     allow_fragment_extension_hint: Option<bool>,
+    allow_hex_colors: Option<bool>,
     icons: Option<WasmIconsOptions>,
 }
 
@@ -137,6 +138,9 @@ fn parse_with_options_json(input: &str, options_json: Option<&str>) -> String {
                 }
                 if let Some(value) = raw.allow_fragment_extension_hint {
                     options.allow_fragment_extension_hint = value;
+                }
+                if let Some(value) = raw.allow_hex_colors {
+                    options.allow_hex_colors = value;
                 }
                 if let Some(icons) = raw.icons {
                     if let Some(value) = icons.video {
@@ -304,6 +308,7 @@ fn extract_footnotes(html: &str) -> (String, Option<String>) {
 /// - `maxInlineNesting`: number (recommended: 3-5)
 /// - `baseUrl`: string
 /// - `allowFragmentExtensionHint`: boolean
+/// - `allowHexColors`: boolean
 /// - `icons`: object with `video`, `audio`, `download`, `colorSwatch`
 ///
 /// # Arguments

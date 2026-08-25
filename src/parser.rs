@@ -60,6 +60,11 @@ pub struct ParserOptions {
     /// Disabled by default for safer behavior; enable only when you trust
     /// the source content and need extension-less URL fallback.
     pub allow_fragment_extension_hint: bool,
+    /// Allow hex color values like `#FF5733` in UMD color syntax.
+    ///
+    /// Disabled by default to keep semantic-color syntax opt-in and avoid
+    /// unintended CSS output from raw color literals.
+    pub allow_hex_colors: bool,
     /// Maximum allowed nesting depth for inline UMD decoration functions.
     ///
     /// When exceeded, inline decoration expansion is skipped as a fail-safe.
@@ -86,6 +91,7 @@ impl Default for ParserOptions {
             max_heading_level: 5,
             base_url: None,
             allow_fragment_extension_hint: false,
+            allow_hex_colors: false,
             max_inline_nesting: Some(5),
             icons: Icons::default(),
             allow_bidi_in_code_blocks: false,

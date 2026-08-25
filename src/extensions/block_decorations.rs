@@ -141,100 +141,37 @@ fn map_font_size(value: &str) -> String {
 
 /// Map color value to Bootstrap class or inline style
 fn map_color(value: &str, is_background: bool) -> Option<String> {
+    map_color_with_options(value, is_background, false)
+}
+
+fn map_color_with_options(
+    value: &str,
+    is_background: bool,
+    allow_hex_colors: bool,
+) -> Option<String> {
     let trimmed = value.trim();
     if trimmed.is_empty() || trimmed == "inherit" {
         return None;
     }
 
-    // Bootstrap theme colors
-    let bootstrap_colors = [
-        // Theme colors
-        "primary",
-        "secondary",
-        "success",
-        "danger",
-        "warning",
-        "info",
-        "light",
-        "dark",
-        "body",
-        "body-secondary",
-        "body-tertiary",
-        "body-emphasis",
-        // Custom colors (Bootstrap 5.3+)
-        "blue",
-        "indigo",
-        "purple",
-        "pink",
-        "red",
-        "orange",
-        "yellow",
-        "green",
-        "teal",
-        "cyan",
-        // Theme colors with suffixes
-        "primary-subtle",
-        "secondary-subtle",
-        "success-subtle",
-        "danger-subtle",
-        "warning-subtle",
-        "info-subtle",
-        "light-subtle",
-        "dark-subtle",
-        "primary-emphasis",
-        "secondary-emphasis",
-        "success-emphasis",
-        "danger-emphasis",
-        "warning-emphasis",
-        "info-emphasis",
-        "light-emphasis",
-        "dark-emphasis",
-        // Custom colors with suffixes
-        "blue-subtle",
-        "indigo-subtle",
-        "purple-subtle",
-        "pink-subtle",
-        "red-subtle",
-        "orange-subtle",
-        "yellow-subtle",
-        "green-subtle",
-        "teal-subtle",
-        "cyan-subtle",
-        "blue-emphasis",
-        "indigo-emphasis",
-        "purple-emphasis",
-        "pink-emphasis",
-        "red-emphasis",
-        "orange-emphasis",
-        "yellow-emphasis",
-        "green-emphasis",
-        "teal-emphasis",
-        "cyan-emphasis",
+    let colors = [
+        "blue", "indigo", "purple", "pink", "red", "orange", "yellow", "green", "teal", "cyan",
     ];
-
-    // Check if it's a Bootstrap color
-    for color in &bootstrap_colors {
-        if trimmed == *color || trimmed.starts_with(&format!("{}-", color)) {
+    for color in colors {
+        if trimmed == color {
             let prefix = if is_background { "bg" } else { "text" };
             return Some(format!("{}-{}", prefix, trimmed));
         }
     }
 
-    // Check if it's a HEX color (#RRGGBB or #RGB)
-    if trimmed.starts_with('#') && (trimmed.len() == 4 || trimmed.len() == 7) {
-        // Basic validation: check if all characters after # are hex digits
-        if trimmed[1..].chars().all(|c| c.is_ascii_hexdigit()) {
-            return Some(trimmed.to_string());
-        }
+    if allow_hex_colors
+        && trimmed.starts_with('#')
+        && (trimmed.len() == 4 || trimmed.len() == 7)
+        && trimmed[1..].chars().all(|c| c.is_ascii_hexdigit())
+    {
+        return Some(trimmed.to_string());
     }
 
-    // Future: Support rgb() and hsl() formats
-    // if trimmed.starts_with("rgb(") || trimmed.starts_with("rgba(") ||
-    //    trimmed.starts_with("hsl(") || trimmed.starts_with("hsla(") {
-    //     return Some(trimmed.to_string());
-    // }
-
-    // Invalid color specification (e.g., HTML color names are not supported)
     None
 }
 
@@ -261,7 +198,7 @@ fn map_vertical_align(value: &str) -> String {
 }
 
 /// Parse all prefixes from a line and extract decoration attributes
-fn parse_prefixes(line: &str) -> (BlockDecoration, String) {
+fn parse_prefixes_with_options(line: &str, allow_hex_colors: bool) -> (BlockDecoration, String) {
     let mut decoration = BlockDecoration::default();
     let mut remaining = line;
 
@@ -276,8 +213,16 @@ fn parse_prefixes(line: &str) -> (BlockDecoration, String) {
     if let Some(caps) = COLOR_EXTRACT.captures(remaining) {
         let fg = caps.get(1).map_or("", |m| m.as_str());
         let bg = caps.get(2).map_or("", |m| m.as_str());
-        decoration.fg_color = map_color(fg, false);
-        decoration.bg_color = map_color(bg, true);
+        decoration.fg_color = map_color_with_options(
+            fg,
+            false,
+            allow_hex_colors,
+        );
+        decoration.bg_color = map_color_with_options(
+            bg,
+            true,
+            allow_hex_colors,
+        );
         remaining = &remaining[caps.get(0).unwrap().end()..];
     }
 
@@ -304,20 +249,17 @@ fn parse_prefixes(line: &str) -> (BlockDecoration, String) {
     (decoration, remaining.trim().to_string())
 }
 
-/// Apply block decoration prefixes to content
-///
-/// # Arguments
-///
-/// * `html` - The HTML content to process
-///
-/// # Returns
-///
-/// HTML with block decorations applied
-pub fn apply_block_decorations(html: &str) -> String {
+fn parse_prefixes(line: &str) -> (BlockDecoration, String) {
+    parse_prefixes_with_options(line, false)
+}
+
+pub fn apply_block_decorations_with_options(
+    html: &str,
+    allow_hex_colors: bool,
+) -> String {
     let mut result = String::new();
 
     for line in html.lines() {
-        // Check if line starts with any decoration prefix
         if line.starts_with("SIZE(")
             || line.starts_with("COLOR(")
             || line.starts_with("TRUNCATE:")
@@ -330,7 +272,7 @@ pub fn apply_block_decorations(html: &str) -> String {
             || line.starts_with("CENTER:")
             || line.starts_with("LEFT:")
         {
-            let (decoration, content) = parse_prefixes(line);
+            let (decoration, content) = parse_prefixes_with_options(line, allow_hex_colors);
             let (class_attr, style_attr) = decoration.to_html_attrs();
 
             let mut attrs = Vec::new();
@@ -353,6 +295,10 @@ pub fn apply_block_decorations(html: &str) -> String {
     }
 
     result.trim_end().to_string()
+}
+
+pub fn apply_block_decorations(html: &str) -> String {
+    apply_block_decorations_with_options(html, false)
 }
 
 /// Apply block placement prefixes to tables and block plugins
@@ -508,16 +454,16 @@ mod tests {
 
     #[test]
     fn test_color_bootstrap_class() {
-        let input = "COLOR(primary): Primary text";
-        let output = apply_block_decorations(input);
-        assert!(output.contains("class=\"text-primary\""));
-        assert!(output.contains("Primary text"));
+        let input = "COLOR(blue): Blue text";
+        let output = apply_block_decorations_with_options(input, false);
+        assert!(output.contains("class=\"text-blue\""));
+        assert!(output.contains("Blue text"));
     }
 
     #[test]
     fn test_color_custom_value() {
         let input = "COLOR(#FF0000): Custom red";
-        let output = apply_block_decorations(input);
+        let output = apply_block_decorations_with_options(input, true);
         assert!(output.contains("style=\"color: #FF0000\""));
     }
 
@@ -551,10 +497,10 @@ mod tests {
 
     #[test]
     fn test_compound_decorations() {
-        let input = "SIZE(1.5): COLOR(primary): CENTER: Styled text";
-        let output = apply_block_decorations(input);
+        let input = "SIZE(1.5): COLOR(blue): CENTER: Styled text";
+        let output = apply_block_decorations_with_options(input, false);
         assert!(output.contains("fs-4"));
-        assert!(output.contains("text-primary"));
+        assert!(output.contains("text-blue"));
         assert!(output.contains("text-center"));
         assert!(output.contains("Styled text"));
     }

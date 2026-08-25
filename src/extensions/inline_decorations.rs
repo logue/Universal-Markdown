@@ -106,99 +106,37 @@ fn map_font_size(value: &str) -> (bool, String) {
 
 /// Map color value to Bootstrap class or inline style
 /// Returns Some((is_class, value)) if valid, None if invalid
-/// Only accepts Bootstrap color names and HEX format (#RRGGBB or #RGB)
+/// Only accepts Bootstrap color names and optionally HEX format (#RRGGBB or #RGB)
 fn map_color(value: &str, is_background: bool) -> Option<(bool, String)> {
+    map_color_with_options(value, is_background, false)
+}
+
+fn map_color_with_options(
+    value: &str,
+    is_background: bool,
+    allow_hex_colors: bool,
+) -> Option<(bool, String)> {
     let trimmed = value.trim();
 
-    // Bootstrap theme colors
-    let bootstrap_colors = [
-        // Theme colors
-        "primary",
-        "secondary",
-        "success",
-        "danger",
-        "warning",
-        "info",
-        "light",
-        "dark",
-        "body",
-        "body-secondary",
-        "body-tertiary",
-        "body-emphasis",
-        // Custom colors (Bootstrap 5.3+)
-        "blue",
-        "indigo",
-        "purple",
-        "pink",
-        "red",
-        "orange",
-        "yellow",
-        "green",
-        "teal",
-        "cyan",
-        // Theme colors with suffixes
-        "primary-subtle",
-        "secondary-subtle",
-        "success-subtle",
-        "danger-subtle",
-        "warning-subtle",
-        "info-subtle",
-        "light-subtle",
-        "dark-subtle",
-        "primary-emphasis",
-        "secondary-emphasis",
-        "success-emphasis",
-        "danger-emphasis",
-        "warning-emphasis",
-        "info-emphasis",
-        "light-emphasis",
-        "dark-emphasis",
-        // Custom colors with suffixes
-        "blue-subtle",
-        "indigo-subtle",
-        "purple-subtle",
-        "pink-subtle",
-        "red-subtle",
-        "orange-subtle",
-        "yellow-subtle",
-        "green-subtle",
-        "teal-subtle",
-        "cyan-subtle",
-        "blue-emphasis",
-        "indigo-emphasis",
-        "purple-emphasis",
-        "pink-emphasis",
-        "red-emphasis",
-        "orange-emphasis",
-        "yellow-emphasis",
-        "green-emphasis",
-        "teal-emphasis",
-        "cyan-emphasis",
+    let colors = [
+        "blue", "indigo", "purple", "pink", "red", "orange", "yellow", "green", "teal", "cyan",
     ];
 
     // Check if it's a Bootstrap color
-    for color in &bootstrap_colors {
-        if trimmed == *color || trimmed.starts_with(&format!("{}-", color)) {
+    for color in colors {
+        if trimmed == color {
             let prefix = if is_background { "bg" } else { "text" };
             return Some((true, format!("{}-{}", prefix, trimmed)));
         }
     }
 
     // Check if it's a HEX color (#RRGGBB or #RGB)
-    if trimmed.starts_with('#') && (trimmed.len() == 4 || trimmed.len() == 7) {
-        // Basic validation: check if all characters after # are hex digits
+    if allow_hex_colors && trimmed.starts_with('#') && (trimmed.len() == 4 || trimmed.len() == 7) {
         if trimmed[1..].chars().all(|c| c.is_ascii_hexdigit()) {
             return Some((false, trimmed.to_string()));
         }
     }
 
-    // Future: Support rgb() and hsl() formats
-    // if trimmed.starts_with("rgb(") || trimmed.starts_with("rgba(") ||
-    //    trimmed.starts_with("hsl(") || trimmed.starts_with("hsla(") {
-    //     return Some((false, trimmed.to_string()));
-    // }
-
-    // Invalid color specification (e.g., HTML color names are not supported)
     None
 }
 
@@ -224,17 +162,13 @@ fn map_badge_type(badge_type: &str) -> String {
 ///
 /// HTML with inline decorations applied
 pub fn apply_inline_decorations(html: &str) -> String {
-    apply_inline_decorations_with_limit(html, Some(5))
+    apply_inline_decorations_with_limit_and_options(html, Some(5), false)
 }
 
-/// Apply inline decoration functions to HTML with configurable nesting limit.
-///
-/// If nested inline decoration functions exceed `max_inline_nesting`,
-/// only the over-limit inline decoration blocks are disabled and wrapped in
-/// `<span class="umd-error-deep-recursive">...</span>` as a fail-safe.
-pub fn apply_inline_decorations_with_limit(
+pub fn apply_inline_decorations_with_limit_and_options(
     html: &str,
     max_inline_nesting: Option<usize>,
+    allow_hex_colors: bool,
 ) -> String {
     let mut result = html.to_string();
 
@@ -319,7 +253,8 @@ pub fn apply_inline_decorations_with_limit(
             let mut styles = Vec::new();
 
             if !fg.is_empty() && fg != "inherit" {
-                if let Some((is_class, value)) = map_color(fg, false) {
+                if let Some((is_class, value)) = map_color_with_options(fg, false, allow_hex_colors)
+                {
                     if is_class {
                         classes.push(value);
                     } else {
@@ -329,7 +264,8 @@ pub fn apply_inline_decorations_with_limit(
             }
 
             if !bg.is_empty() && bg != "inherit" {
-                if let Some((is_class, value)) = map_color(bg, true) {
+                if let Some((is_class, value)) = map_color_with_options(bg, true, allow_hex_colors)
+                {
                     if is_class {
                         classes.push(value);
                     } else {
@@ -437,6 +373,13 @@ pub fn apply_inline_decorations_with_limit(
     result = INLINE_BR.replace_all(&result, "<br />").to_string();
 
     result
+}
+
+pub fn apply_inline_decorations_with_limit(
+    html: &str,
+    max_inline_nesting: Option<usize>,
+) -> String {
+    apply_inline_decorations_with_limit_and_options(html, max_inline_nesting, false)
 }
 
 fn inline_decoration_nesting_depth(input: &str) -> usize {
@@ -623,7 +566,7 @@ mod tests {
 
     #[test]
     fn test_map_color_hex() {
-        let result = map_color("#FF5733", false);
+        let result = map_color_with_options("#FF5733", false, true);
         assert!(
             result.is_some(),
             "#FF5733 should be recognized as a valid HEX color"
@@ -696,7 +639,7 @@ mod tests {
     fn test_inline_color_hex() {
         // Test with HEX color
         let input = "&color(#FF5733){Custom hex color};";
-        let output = apply_inline_decorations(input);
+        let output = apply_inline_decorations_with_limit_and_options(input, Some(5), true);
         assert!(
             output.contains(r#"style="color: #FF5733""#),
             "Expected HEX color as inline style, got: {}",
@@ -829,9 +772,9 @@ mod tests {
 
     #[test]
     fn test_badge_basic() {
-        let input = "&badge(primary){New};";
+        let input = "&badge(blue){New};";
         let output = apply_inline_decorations(input);
-        assert!(output.contains("<span class=\"badge bg-primary\">New</span>"));
+        assert!(output.contains("<span class=\"badge bg-blue\">New</span>"));
     }
 
     #[test]
@@ -885,15 +828,15 @@ mod tests {
 
     #[test]
     fn test_color_bootstrap_class() {
-        let input = "&color(primary){Primary text};";
-        let output = apply_inline_decorations(input);
-        assert!(output.contains("class=\"text-primary\""));
+        let input = "&color(blue){Blue text};";
+        let output = apply_inline_decorations_with_limit_and_options(input, Some(5), false);
+        assert!(output.contains("class=\"text-blue\""));
     }
 
     #[test]
     fn test_color_custom_value() {
         let input = "&color(#FF0000){Red text};";
-        let output = apply_inline_decorations(input);
+        let output = apply_inline_decorations_with_limit_and_options(input, Some(5), true);
         assert!(output.contains("style=\"color: #FF0000\""));
     }
 
