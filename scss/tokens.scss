@@ -1,0 +1,29 @@
+:root {
+  --umd-body-bg: #ffffff;
+  --umd-body-color: #212529;
+  --umd-muted-color: #6c757d;
+  --umd-border-color: #dee2e6;
+  --umd-surface-bg: #f8f9fa;
+  --umd-link-color: #0a58ca;
+  --umd-focus-ring: rgb(13 110 253 / 35%);
+  --umd-code-bg: #f1f3f5;
+  --umd-code-color: #212529;
+  --umd-color-primary: var(--umd-host-primary, #0d6efd);
+  --umd-color-success: var(--umd-host-success, #198754);
+  --umd-color-danger: var(--umd-host-danger, #dc3545);
+  --umd-color-warning: var(--umd-host-warning, #ffc107);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --umd-body-bg: #17191c;
+    --umd-body-color: #e9ecef;
+    --umd-muted-color: #adb5bd;
+    --umd-border-color: #495057;
+    --umd-surface-bg: #212529;
+    --umd-link-color: #6ea8fe;
+    --umd-focus-ring: rgb(110 168 254 / 45%);
+    --umd-code-bg: #282c31;
+    --umd-code-color: #f8f9fa;
+  }
+}

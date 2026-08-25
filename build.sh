@@ -23,12 +23,19 @@ if ! command -v wasm-pack &> /dev/null; then
     exit 1
 fi
 
+if ! command -v npm &> /dev/null; then
+    echo "❌ npm is not installed"
+    exit 1
+fi
+
 # Build for web target
 if [ "$BUILD_TYPE" = "dev" ]; then
     wasm-pack build --target web --dev --out-dir pkg
 else
     wasm-pack build --target web --release --out-dir pkg
 fi
+
+npm run build:css
 
 # Normalize generated package metadata to the author's preferred npm format.
 ruby <<'RUBY'
@@ -58,6 +65,7 @@ pkg["bugs"] = {
 }
 pkg["sideEffects"] = false
 pkg["name"] = "universal-markdown"
+pkg["files"] = (Array(pkg["files"]) + ["umd-reference.css"]).uniq
 
 File.write(path, JSON.pretty_generate(pkg) + "\n")
 RUBY

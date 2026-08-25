@@ -1,0 +1,13 @@
+{
+	"name": "umd-core-assets",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build:css": "rsbuild build && node scripts/build-css.mjs",
+		"dev:css": "rsbuild dev"
+	},
+	"devDependencies": {
+		"@rsbuild/core": "^2.1.13",
+		"@rsbuild/plugin-sass": "^2.0.1"
+	}
+}

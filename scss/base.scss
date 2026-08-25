@@ -1,0 +1,34 @@
+:where(body) {
+  background-color: var(--umd-body-bg);
+  color: var(--umd-body-color);
+}
+
+:where(a) {
+  color: var(--umd-link-color);
+}
+
+:where(a:focus-visible, button:focus-visible, [tabindex]:focus-visible) {
+  outline: 2px solid var(--umd-focus-ring);
+  outline-offset: 2px;
+}
+
+:where(img, video, audio) {
+  max-width: 100%;
+  height: auto;
+}
+
+:where(table) {
+  border-collapse: collapse;
+}
+
+:where(th, td) {
+  border: 1px solid var(--umd-border-color);
+  padding: 0.5rem;
+}
+
+:where(.footnotes) {
+  border-top: 1px solid var(--umd-border-color);
+  color: var(--umd-muted-color);
+  margin-top: 2rem;
+  padding-top: 1rem;
+}

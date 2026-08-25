@@ -18,6 +18,11 @@ exclude = [
   "pkg/**",
   "AI_Handover_Document.md",
   "test_table",
+  "scss/**",
+  "scripts/**",
+  "package.json",
+  "package-lock.json",
+  "rsbuild.config.ts",
 ]
 
 [lib]
