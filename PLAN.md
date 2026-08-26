@@ -3,7 +3,7 @@
 **プロジェクト概要**: Markdownを超える次世代マークアップ言語。CommonMark仕様テスト 75%+ パス、Bootstrap 5統合、セマンティックHTML、拡張可能なプラグインシステム提供。
 
 **作成日**: 2026年1月23日  
-**最終更新**: 2026年8月24日  
+**最終更新**: 2026年8月23日  
 **Rustバージョン**: 1.98.0 (Edition 2024)  
 **ライセンス**: Apache-2.0
 
@@ -52,7 +52,6 @@
 - ✅ インラインコード色サンプル（HEX/RGB/RGBA/HSL/HSLA）
 - ✅ セキュリティ対策完備（XSS/URL sanitization）
 - ✅ ブロック型プラグイン書式の拡張（`::: 記法`）
-- ✅ メディアの `integrity` 属性対応（SRI）
 
 ### 🚧 進行中
 
@@ -67,6 +66,7 @@
 - 🔮 フロントエンド向けのシンタックスハイライト改善
 - 🔮 挿入・削除記法（`{+ +}` / `{- -}`）の追加
 - 🔮 パーサーレベルの定義（チャット運用時、コメント運用時、ドキュメント作成時）
+- 🔮 リンク・画像の `integrity` 属性対応（SRI）
 - 🔮 フロントマターのTSON対応（区切り文字 `***`）
 - 🔮 ボトムマター仕様策定
 
@@ -78,7 +78,7 @@
 
 QiitaやGrowiで採用されている書式を新たにサポートします。
 
-```
+```markdown
 :::function args
 content
 :::
@@ -94,7 +94,7 @@ content
 
 以下のパターンはいずれも入れ子を含むため非対応です：
 
-```markdown
+```umd
 ❌ ブロック型プラグイン内にブロック型プラグイン
 :::function args
 :::function2 args2
@@ -133,7 +133,7 @@ content
 
 `<ins>` / `<del>` に対応するインライン記法を追加します。
 
-```text
+```umd
 {+ 追加されたテキスト +}
 {- 削除されたテキスト -}
 ```
@@ -175,23 +175,23 @@ content
 
 ### 基本ルール
 
-| 機能                           | Chat | Comment | Document |
-| ------------------------------ | ---- | ------- | -------- |
-| 太字・斜体・取り消し線         | ✅   | ✅      | ✅       |
-| 下線（`__`）                   | ✅   | ✅      | ✅       |
-| スポイラー                     | ✅   | ✅      | ✅       |
-| コードブロック                 | ✅   | ✅      | ✅       |
-| メンション（`@user`）          | ✅   | ✅      | ✅       |
-| 文字色（プリセットカラーのみ） | ✅   | ✅      | ✅       |
-| 数式（`&math();`）             | ❌   | ✅      | ✅       |
-| 文字色（HEXによる指定）        | ❌   | ❌      | ✅       |
-| テーブル（Markdown）           | ❌   | ✅      | ✅       |
-| Mermaid                        | ❌   | ✅      | ✅       |
-| コメント（`//`等）             | ❌   | ❌      | ✅       |
-| 文字サイズ                     | ❌   | ❌      | ✅       |
-| レイアウト（`RIGHT:`等）       | ❌   | ❌      | ✅       |
-| テーブル（PukiWiki形式）       | ❌   | ❌      | ✅       |
-| ブロックプラグイン             | ❌   | ❌      | ✅       |
+| 機能                            | Chat | Comment | Document |
+| ------------------------------- | ---- | ------- | -------- |
+| 太字・斜体・取り消し線          | ✅   | ✅      | ✅       |
+| 下線（`__`）                    | ✅   | ✅      | ✅       |
+| スポイラー                      | ✅   | ✅      | ✅       |
+| コードブロック                  | ✅   | ✅      | ✅       |
+| メンション（`@user`）           | ✅   | ✅      | ✅       |
+| 文字色（プリセットカラーのみ）  | ✅   | ✅      | ✅       |
+| 数式（`&math();`）              | ❌   | ✅      | ✅       |
+| 文字色（HEXによる指定）         | ❌   | ❌      | ✅       |
+| テーブル（Markdown）            | ❌   | ✅      | ✅       |
+| Mermaid                         | ❌   | ✅      | ✅       |
+| コメント（`//`等）              | ❌   | ❌      | ✅       |
+| 文字サイズ                      | ❌   | ❌      | ✅       |
+| レイアウト（`START:`/`END:`等） | ❌   | ❌      | ✅       |
+| テーブル（PukiWiki形式）        | ❌   | ❌      | ✅       |
+| ブロックプラグイン              | ❌   | ❌      | ✅       |
 
 ### 検討事項
 
@@ -207,25 +207,32 @@ content
 
 Subresource Integrity (SRI) 相当のハッシュ検証をリンク・画像に付与するための属性拡張です。
 
-```text
-![動画](url){75%, sha256-abc123==, sha384-def456==}
-![画像](url){sha256-abc123==}
+```umd
+[リンク](url){integrity=sha256:x9y8z7..., class=...};
+![画像](url){50%, integirity=sha256:x9y8z7...}
 ```
 
 ### 基本ルール（`integrity` 属性）
 
-1. 画像記法の URL 直後に `{sha256-...}` 形式のパラメータを指定可能
-2. `sha256-`、`sha384-`、`sha512-` のハッシュをサポートし、複数指定時はスペース区切りで結合
-3. 動画・音声の `<source>` とダウンロード用 `<a>`、画像の `<source>` に `integrity` 属性を付与
-4. 値は Base64 文字列として検証し、不正なトークンは無視
+1. 既存の属性記法 `{key=value, ...}` に `integrity` キーを追加
+2. 値は `アルゴリズム名:ハッシュ値` 形式（例: `sha256:x9y8z7...`）を想定 — 標準SRI仕様の `sha256-...`（ハイフン区切り）との対応関係は要検討
+3. `class` など既存の属性キーと併記可能（カンマ区切り）
+4. 出力HTMLでは `integrity` 属性（および必要に応じ `crossorigin` 属性）としてそのまま付与
+
+### 検討事項（`integrity` 属性）
+
+- 区切り文字を `:`（本仕様案）にするか、標準SRIに合わせて `-` にするかは未確定
+- 対応アルゴリズム（`sha256` / `sha384` / `sha512`）の範囲
+- 値のフォーマットバリデーション（Base64判定）の要否
+- クロスオリジンリソースのみ許可するか、ローカルリソースも含めるか
 
 ### 実装計画（`integrity` 属性）
 
-- [x] メディアパラメータパーサへの SRI ハッシュ追加
-- [x] 標準 SRI の `sha256-` / `sha384-` / `sha512-` 形式と Base64 バリデーションを確定
-- [x] HTML 出力時の `integrity` 属性付与
-- [x] 動画・音声・画像・ダウンロードリンクのテスト追加
-- [x] ドキュメント更新
+- [ ] 属性パーサへの `integrity` キー追加
+- [ ] 値フォーマットの確定・バリデーション実装
+- [ ] HTML出力時の `integrity` / `crossorigin` 属性付与
+- [ ] テスト suite 追加
+- [ ] ドキュメント更新
 
 ---
 
@@ -235,7 +242,7 @@ Subresource Integrity (SRI) 相当のハッシュ検証をリンク・画像に�
 
 型注釈付きJSON（TSON）形式のフロントマターをサポートします。区切り文字は `***` とします。
 
-```text
+```umd
 ***
 {
   "id": int 101,
@@ -302,6 +309,52 @@ Subresource Integrity (SRI) 相当のハッシュ検証をリンク・画像に�
 2. Bootstrapのユーティリティクラス名は、UMD独自のプレフィックスへ改名する（例: `d-block` → `umd-block` など）。具体的な命名規則は未定
 3. **意味を持たない色指定**（`blue` / `red` / `green` など、Bootstrapの標準カラー名）はそのままのクラス名・命名を踏襲する
 4. **意味を持つ色指定**（`primary` / `danger` / `success` など、役割に基づく色）はCSSにハードコーディングせず、ホスト側がオプションで実際の色（CSS変数やクラス名）を指定できるようにする
+5. **CSS論理プロパティを使用する**（後述）
+
+### CSS 論理プロパティ方針
+
+UMD が出力する HTML および提供する CSS は、物理的な方向指定（`left` / `right`）を使用せず、**CSS 論理プロパティ**（CSS Logical Properties & Values）を使用します。
+
+これにより以下を担保します：
+
+- **RTL 言語**（アラビア語・ヘブライ語等）: `dir="rtl"` を付けるだけで `start`/`end` が自動反転する
+- **縦書き**（`writing-mode: vertical-rl`）: `inline`/`block` の軸が入れ替わっても崩れない
+
+主な対応表：
+
+| 物理プロパティ（使用禁止） | 論理プロパティ（使用すること） |
+| -------------------------- | ------------------------------ |
+| `text-align: left/right`   | `text-align: start/end`        |
+| `margin-left/right`        | `margin-inline-start/end`      |
+| `padding-left/right`       | `padding-inline-start/end`     |
+| `border-left/right`        | `border-inline-start/end`      |
+| `left/right`（position）   | `inset-inline-start/end`       |
+| `top/bottom`               | `inset-block-start/end`        |
+| `width/height`             | `inline-size/block-size`       |
+| `float: left/right`        | `float: inline-start/end`      |
+
+UMD 文法上の配置記法の正式名称は以下の通りです：
+
+**インライン方向（text-align 相当）**
+
+| 記法       | 対応 CSS              | 備考        |
+| ---------- | --------------------- | ----------- |
+| `START:`   | `text-align: start`   | 旧 `LEFT:`  |
+| `END:`     | `text-align: end`     | 旧 `RIGHT:` |
+| `CENTER:`  | `text-align: center`  | 変更なし    |
+| `JUSTIFY:` | `text-align: justify` | 変更なし    |
+
+**ブロック方向（vertical-align 相当）**
+
+CSS 仕様に `vertical-align` の論理的代替が存在しないため、`V-` プレフィックスを付けた独自記法を採用します。
+
+| 記法        | 対応 CSS                 | 備考         |
+| ----------- | ------------------------ | ------------ |
+| `V-START:`  | `vertical-align: top`    | 旧 `TOP:`    |
+| `V-END:`    | `vertical-align: bottom` | 旧 `BOTTOM:` |
+| `V-CENTER:` | `vertical-align: middle` | 旧 `MIDDLE:` |
+
+> ⚠️ 既存コード（`src/extensions/block_decorations.rs` 等）に物理プロパティのクラス名が残っている場合は、CSS抽象化層の実装と合わせて順次移行する。
 
 ### 検討事項（脱Bootstrap化）
 
