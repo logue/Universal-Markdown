@@ -1,4 +1,4 @@
-:where(.code-block, pre) {
+:where(.umd-code-block, pre) {
   background-color: var(--umd-code-bg);
   border: 1px solid var(--umd-border-color);
   overflow-x: auto;
@@ -12,13 +12,13 @@
   color: var(--umd-code-color);
 }
 
-:where(.code-block figcaption, .code-title) {
-  border-bottom: 1px solid var(--umd-border-color);
+:where(.umd-code-block figcaption, .umd-code-title) {
+  border-block-end: 1px solid var(--umd-border-color);
   color: var(--umd-muted-color);
   padding: 0.5rem 1rem;
 }
 
 :where(.umd-error-deep-recursive) {
   background-color: rgb(220 53 69 / 8%);
-  outline: 2px dashed var(--umd-color-danger);
+  outline: 2px dashed var(--red-500);
 }

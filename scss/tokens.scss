@@ -1,29 +1,34 @@
-:root {
-  --umd-body-bg: #ffffff;
-  --umd-body-color: #212529;
-  --umd-muted-color: #6c757d;
-  --umd-border-color: #dee2e6;
-  --umd-surface-bg: #f8f9fa;
-  --umd-link-color: #0a58ca;
-  --umd-focus-ring: rgb(13 110 253 / 35%);
-  --umd-code-bg: #f1f3f5;
-  --umd-code-color: #212529;
-  --umd-color-primary: var(--umd-host-primary, #0d6efd);
-  --umd-color-success: var(--umd-host-success, #198754);
-  --umd-color-danger: var(--umd-host-danger, #dc3545);
-  --umd-color-warning: var(--umd-host-warning, #ffc107);
-}
+/*
+ * UMD semantic tokens
+ *
+ * All values use light-dark() for automatic color-scheme switching.
+ * Requires: `color-scheme: light dark` on :root (set by color.scss).
+ *
+ * Palette primitives (--gray-*, --blue-*, etc.) are defined in
+ * utilities/color.scss. Semantic tokens (primary, success, danger, …)
+ * are intentionally absent — those are the application's responsibility.
+ */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --umd-body-bg: #17191c;
-    --umd-body-color: #e9ecef;
-    --umd-muted-color: #adb5bd;
-    --umd-border-color: #495057;
-    --umd-surface-bg: #212529;
-    --umd-link-color: #6ea8fe;
-    --umd-focus-ring: rgb(110 168 254 / 45%);
-    --umd-code-bg: #282c31;
-    --umd-code-color: #f8f9fa;
-  }
+:root {
+  /* Surface */
+  --umd-body-bg: light-dark(white, var(--gray-975));
+  --umd-body-color: light-dark(var(--gray-900), var(--gray-100));
+  --umd-muted-color: light-dark(var(--gray-600), var(--gray-400));
+  --umd-surface-bg: light-dark(var(--gray-050), var(--gray-900));
+
+  /* Border */
+  --umd-border-color: light-dark(var(--gray-200), var(--gray-700));
+
+  /* Link */
+  --umd-link-color: light-dark(var(--blue-700), var(--blue-300));
+
+  /* Focus ring — alpha channel requires inline OKLCH values */
+  --umd-focus-ring: light-dark(
+    oklch(60% 0.24 240 / 35%),
+    oklch(60% 0.24 240 / 55%)
+  );
+
+  /* Code */
+  --umd-code-bg: light-dark(var(--gray-025), var(--gray-950));
+  --umd-code-color: light-dark(var(--gray-900), var(--gray-050));
 }

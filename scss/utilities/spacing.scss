@@ -1,15 +1,14 @@
-.mx-auto {
+/* Center a block inline (e.g. an image inside a block container) */
+.umd-inline-center {
   margin-inline: auto;
 }
 
-.ms-auto {
+/* Align block to the end — margin-inline-start pushes element toward end */
+.umd-block-end {
   margin-inline-start: auto;
 }
 
-.me-auto {
+/* Align block to the start — margin-inline-end pushes element toward start */
+.umd-block-start {
   margin-inline-end: auto;
-}
-
-.me-0 {
-  margin-inline-end: 0;
 }

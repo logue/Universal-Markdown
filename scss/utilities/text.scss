@@ -1,11 +1,53 @@
-.text-center {
+/* Inline (horizontal) text alignment */
+.umd-start {
+  text-align: start;
+}
+
+.umd-center {
   text-align: center;
 }
 
-.text-end {
+.umd-end {
   text-align: end;
 }
 
-.fs-4 {
-  font-size: 1.5rem;
+.umd-justify {
+  text-align: justify;
+}
+
+/* Block (vertical) alignment — no CSS logical equivalent exists;
+   V-START/V-END/V-CENTER is UMD's own naming convention */
+.umd-v-start {
+  vertical-align: top;
+}
+
+.umd-v-center {
+  vertical-align: middle;
+}
+
+.umd-v-end {
+  vertical-align: bottom;
+}
+
+/* Text size — CSS keyword values only.
+   Relative to the browser's base font size; no arbitrary pixel values.
+   Syntax: &size(sm){ text }  →  <span class="umd-text-size-sm">text</span>
+   Note: explicit pixel/rem sizing is an opt-in option (disabled by default
+   to prevent abuse in chat contexts). */
+.umd-text-size-xs {
+  font-size: x-small;
+}
+
+.umd-text-size-sm {
+  font-size: small;
+}
+
+/* medium = browser default; no class needed */
+
+.umd-text-size-lg {
+  font-size: large;
+}
+
+.umd-text-size-xl {
+  font-size: x-large;
 }

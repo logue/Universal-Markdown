@@ -1,19 +1,22 @@
-.d-block {
+.umd-block {
   display: block;
 }
 
-.d-inline-block {
+.umd-inline-block {
   display: inline-block;
 }
 
-.d-none {
+.umd-hidden {
   display: none;
 }
 
-.w-100 {
-  width: 100%;
+/* Full-width block: stretches to fill the container */
+.umd-block-justify {
+  inline-size: 100%;
 }
 
-.w-auto {
-  width: auto;
+/* Centered block: shrinks to content width, centered via auto margins */
+.umd-block-center {
+  inline-size: auto;
+  margin-inline: auto;
 }

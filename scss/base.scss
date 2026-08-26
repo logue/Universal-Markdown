@@ -3,8 +3,15 @@
   color: var(--umd-body-color);
 }
 
+/* Reference defaults — intended to be overridden by the host application */
 :where(a) {
   color: var(--umd-link-color);
+}
+
+:where(abbr[title]) {
+  color: light-dark(var(--green-600), var(--green-400));
+  cursor: help;
+  text-decoration: underline dotted;
 }
 
 :where(a:focus-visible, button:focus-visible, [tabindex]:focus-visible) {
@@ -13,8 +20,8 @@
 }
 
 :where(img, video, audio) {
-  max-width: 100%;
-  height: auto;
+  max-inline-size: 100%;
+  block-size: auto;
 }
 
 :where(table) {
@@ -26,9 +33,9 @@
   padding: 0.5rem;
 }
 
-:where(.footnotes) {
-  border-top: 1px solid var(--umd-border-color);
+:where(.umd-footnotes) {
+  border-block-start: 1px solid var(--umd-border-color);
   color: var(--umd-muted-color);
-  margin-top: 2rem;
-  padding-top: 1rem;
+  margin-block-start: 2rem;
+  padding-block-start: 1rem;
 }

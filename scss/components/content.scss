@@ -1,20 +1,20 @@
-:where(.umd-blockquote, .blockquote) {
+:where(.umd-blockquote) {
   border-inline-start: 0.25rem solid var(--umd-border-color);
   margin-inline: 0;
   padding-inline: 1rem;
 }
 
-:where(.spoiler) {
+:where(.umd-spoiler) {
   background-color: var(--umd-body-color);
   color: transparent;
   cursor: pointer;
 }
 
-:where(.spoiler[aria-expanded="true"]) {
+:where(.umd-spoiler[aria-expanded="true"]) {
   color: var(--umd-body-bg);
 }
 
-:where(.inline-code-color) {
+:where(.umd-color-swatch) {
   border: 1px solid var(--umd-border-color);
   display: inline-block;
   height: 0.75em;
@@ -24,7 +24,7 @@
 }
 
 :where(.umd-idn-warning-icon) {
-  color: var(--umd-color-warning);
+  color: light-dark(var(--yellow-600), var(--yellow-400));
   display: inline-block;
   margin-inline-start: 0.35em;
 }
