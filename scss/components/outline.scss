@@ -1,0 +1,15 @@
+/*
+ * 袋文字 (outlined text)
+ *
+ * Syntax: &outline(fill, stroke){ content }
+ *   fill   — text fill color   (default: --umd-body-bg,    i.e. background)
+ *   stroke — outline color     (default: --umd-body-color, i.e. foreground)
+ *
+ * paint-order: stroke fill ensures the stroke renders behind the fill,
+ * so thin strokes do not bleed into the letterforms.
+ */
+:where(.umd-outline) {
+  -webkit-text-stroke: 0.05em var(--umd-outline-stroke, var(--umd-body-color));
+  color: var(--umd-outline-fill, var(--umd-body-bg));
+  paint-order: stroke fill;
+}
