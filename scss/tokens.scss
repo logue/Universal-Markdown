@@ -2,25 +2,32 @@
  * UMD semantic tokens
  *
  * All values use light-dark() for automatic color-scheme switching.
- * Requires: `color-scheme: light dark` on :root (set by color.scss).
  *
- * Palette primitives (--gray-*, --blue-*, etc.) are defined in
- * utilities/color.scss. Semantic tokens (primary, success, danger, …)
- * are intentionally absent — those are the application's responsibility.
+ * Palette primitives (--umd-palette-gray-*, --umd-palette-blue-*, etc.)
+ * are defined in palette.scss and should not be referenced outside this
+ * file. Broad semantic tokens (primary, success, danger, …) are
+ * intentionally absent — those are the application's responsibility.
+ * What lives here is either infrastructure (color-scheme, surface/border/
+ * link roles) or fixed-meaning component colors (abbr, idn-warning) that
+ * aren't brand-configurable.
  */
 
 :root {
+  /* Enables the browser's automatic light/dark switching so every
+     light-dark() call below (and in consumers of these tokens) works. */
+  color-scheme: light dark;
+
   /* Surface */
-  --umd-body-bg: light-dark(white, var(--gray-975));
-  --umd-body-color: light-dark(var(--gray-900), var(--gray-100));
-  --umd-muted-color: light-dark(var(--gray-600), var(--gray-400));
-  --umd-surface-bg: light-dark(var(--gray-050), var(--gray-900));
+  --umd-body-bg: light-dark(white, var(--umd-palette-gray-975));
+  --umd-body-color: light-dark(var(--umd-palette-gray-900), var(--umd-palette-gray-100));
+  --umd-muted-color: light-dark(var(--umd-palette-gray-600), var(--umd-palette-gray-400));
+  --umd-surface-bg: light-dark(var(--umd-palette-gray-050), var(--umd-palette-gray-900));
 
   /* Border */
-  --umd-border-color: light-dark(var(--gray-200), var(--gray-700));
+  --umd-border-color: light-dark(var(--umd-palette-gray-200), var(--umd-palette-gray-700));
 
   /* Link */
-  --umd-link-color: light-dark(var(--blue-700), var(--blue-300));
+  --umd-link-color: light-dark(var(--umd-palette-blue-700), var(--umd-palette-blue-300));
 
   /* Focus ring — alpha channel requires inline OKLCH values */
   --umd-focus-ring: light-dark(
@@ -29,11 +36,56 @@
   );
 
   /* Code */
-  --umd-code-bg: light-dark(var(--gray-025), var(--gray-950));
-  --umd-code-color: light-dark(var(--gray-900), var(--gray-050));
+  --umd-code-bg: light-dark(var(--umd-palette-gray-025), var(--umd-palette-gray-950));
+  --umd-code-color: light-dark(var(--umd-palette-gray-900), var(--umd-palette-gray-050));
 
   /* Fixed-meaning component colors — not brand/theme roles, so they live
      here rather than being left to the application like primary/success/danger. */
-  --umd-abbr-color: light-dark(var(--green-600), var(--green-400));
-  --umd-idn-warning-color: light-dark(var(--yellow-600), var(--yellow-400));
+  --umd-abbr-color: light-dark(var(--umd-palette-green-600), var(--umd-palette-green-400));
+  --umd-idn-warning-color: light-dark(var(--umd-palette-yellow-600), var(--umd-palette-yellow-400));
+
+  /*
+   * Named-color text/background pairs, backing the utilities/color.scss
+   * .umd-color-* / .umd-bg-* classes and &color(fg,bg) plugin output.
+   *
+   * Text and background intentionally use different lightness stops of
+   * the same hue (600/400 vs 100/900) rather than sharing one value —
+   * &color(blue, blue) requests the same name for both, and if fg/bg
+   * resolved to the same stop the text would be illegible against its
+   * own background. Keeping the stops apart guarantees contrast even
+   * when both roles use the same color name.
+   */
+  --umd-color-blue: light-dark(var(--umd-palette-blue-600), var(--umd-palette-blue-400));
+  --umd-color-indigo: light-dark(var(--umd-palette-indigo-600), var(--umd-palette-indigo-400));
+  --umd-color-violet: light-dark(var(--umd-palette-violet-600), var(--umd-palette-violet-400));
+  --umd-color-purple: light-dark(var(--umd-palette-purple-600), var(--umd-palette-purple-400));
+  --umd-color-pink: light-dark(var(--umd-palette-pink-600), var(--umd-palette-pink-400));
+  --umd-color-red: light-dark(var(--umd-palette-red-600), var(--umd-palette-red-400));
+  --umd-color-orange: light-dark(var(--umd-palette-orange-600), var(--umd-palette-orange-400));
+  --umd-color-amber: light-dark(var(--umd-palette-amber-600), var(--umd-palette-amber-400));
+  --umd-color-yellow: light-dark(var(--umd-palette-yellow-600), var(--umd-palette-yellow-400));
+  --umd-color-lime: light-dark(var(--umd-palette-lime-600), var(--umd-palette-lime-400));
+  --umd-color-green: light-dark(var(--umd-palette-green-600), var(--umd-palette-green-400));
+  --umd-color-teal: light-dark(var(--umd-palette-teal-600), var(--umd-palette-teal-400));
+  --umd-color-cyan: light-dark(var(--umd-palette-cyan-600), var(--umd-palette-cyan-400));
+  --umd-color-brown: light-dark(var(--umd-palette-brown-600), var(--umd-palette-brown-400));
+  --umd-color-gray: light-dark(var(--umd-palette-gray-600), var(--umd-palette-gray-400));
+  --umd-color-pewter: light-dark(var(--umd-palette-pewter-600), var(--umd-palette-pewter-400));
+
+  --umd-bg-blue: light-dark(var(--umd-palette-blue-100), var(--umd-palette-blue-900));
+  --umd-bg-indigo: light-dark(var(--umd-palette-indigo-100), var(--umd-palette-indigo-900));
+  --umd-bg-violet: light-dark(var(--umd-palette-violet-100), var(--umd-palette-violet-900));
+  --umd-bg-purple: light-dark(var(--umd-palette-purple-100), var(--umd-palette-purple-900));
+  --umd-bg-pink: light-dark(var(--umd-palette-pink-100), var(--umd-palette-pink-900));
+  --umd-bg-red: light-dark(var(--umd-palette-red-100), var(--umd-palette-red-900));
+  --umd-bg-orange: light-dark(var(--umd-palette-orange-100), var(--umd-palette-orange-900));
+  --umd-bg-amber: light-dark(var(--umd-palette-amber-100), var(--umd-palette-amber-900));
+  --umd-bg-yellow: light-dark(var(--umd-palette-yellow-100), var(--umd-palette-yellow-900));
+  --umd-bg-lime: light-dark(var(--umd-palette-lime-100), var(--umd-palette-lime-900));
+  --umd-bg-green: light-dark(var(--umd-palette-green-100), var(--umd-palette-green-900));
+  --umd-bg-teal: light-dark(var(--umd-palette-teal-100), var(--umd-palette-teal-900));
+  --umd-bg-cyan: light-dark(var(--umd-palette-cyan-100), var(--umd-palette-cyan-900));
+  --umd-bg-brown: light-dark(var(--umd-palette-brown-100), var(--umd-palette-brown-900));
+  --umd-bg-gray: light-dark(var(--umd-palette-gray-100), var(--umd-palette-gray-900));
+  --umd-bg-pewter: light-dark(var(--umd-palette-pewter-100), var(--umd-palette-pewter-900));
 }

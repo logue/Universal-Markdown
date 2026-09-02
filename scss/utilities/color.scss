@@ -1,279 +1,145 @@
 /*
- * UMD Reference Color System
- * Based on Bootstrap 6 (v6-audit) color architecture
+ * UMD Color Utilities
  *
- * Primitive palette: 16 colors × 13 stops (025–975)
- * Mixing space: lab (matches Bootstrap 6 $color-mix-space: lab)
- * Base values: OKLCH (matches Bootstrap 6 _colors.scss)
- *
- * Semantic tokens use light-dark() for automatic color-scheme switching.
- * Requires: color-scheme set on :root or <html>.
- *
- * TODO: Once bootstrap6 is stable, we will refer to its functions and parameters.
+ * Named-color text/background classes. Primitive palette values live in
+ * palette.scss (--umd-palette-*); the actual color decisions (which
+ * lightness stop, light/dark pairing) live in tokens.scss (--umd-color-*,
+ * --umd-bg-*) — this file only wires classes to those tokens.
  */
 
 /* ============================================================
-   PRIMITIVE PALETTE
-   color-mix(in lab, <base>, white <tint%>) for 025–400
-   <base> for 500
-   color-mix(in lab, <base>, black <shade%>) for 600–975
+   NAMED COLOR UTILITIES
+   Values live in tokens.scss (--umd-color-* and --umd-bg-*) — this is
+   just the class-to-token wiring. Independent of Bootstrap's --bs-*
+   text-* / bg-* utilities. Text and background deliberately pull from
+   different tokens (not the same lightness stop) so &color(blue, blue)
+   stays legible — see the comment in tokens.scss.
    ============================================================ */
 
-:root {
-  /* --- Blue  oklch(60% 0.24 240) --- */
-  --blue-025: color-mix(in lab, oklch(60% 0.24 240), white 94%);
-  --blue-050: color-mix(in lab, oklch(60% 0.24 240), white 90%);
-  --blue-100: color-mix(in lab, oklch(60% 0.24 240), white 80%);
-  --blue-200: color-mix(in lab, oklch(60% 0.24 240), white 60%);
-  --blue-300: color-mix(in lab, oklch(60% 0.24 240), white 40%);
-  --blue-400: color-mix(in lab, oklch(60% 0.24 240), white 20%);
-  --blue-500: oklch(60% 0.24 240);
-  --blue-600: color-mix(in lab, oklch(60% 0.24 240), black 16%);
-  --blue-700: color-mix(in lab, oklch(60% 0.24 240), black 32%);
-  --blue-800: color-mix(in lab, oklch(60% 0.24 240), black 48%);
-  --blue-900: color-mix(in lab, oklch(60% 0.24 240), black 64%);
-  --blue-950: color-mix(in lab, oklch(60% 0.24 240), black 76%);
-  --blue-975: color-mix(in lab, oklch(60% 0.24 240), black 88%);
-
-  /* --- Indigo  oklch(56% 0.26 288) --- */
-  --indigo-025: color-mix(in lab, oklch(56% 0.26 288), white 94%);
-  --indigo-050: color-mix(in lab, oklch(56% 0.26 288), white 90%);
-  --indigo-100: color-mix(in lab, oklch(56% 0.26 288), white 80%);
-  --indigo-200: color-mix(in lab, oklch(56% 0.26 288), white 60%);
-  --indigo-300: color-mix(in lab, oklch(56% 0.26 288), white 40%);
-  --indigo-400: color-mix(in lab, oklch(56% 0.26 288), white 20%);
-  --indigo-500: oklch(56% 0.26 288);
-  --indigo-600: color-mix(in lab, oklch(56% 0.26 288), black 16%);
-  --indigo-700: color-mix(in lab, oklch(56% 0.26 288), black 32%);
-  --indigo-800: color-mix(in lab, oklch(56% 0.26 288), black 48%);
-  --indigo-900: color-mix(in lab, oklch(56% 0.26 288), black 64%);
-  --indigo-950: color-mix(in lab, oklch(56% 0.26 288), black 76%);
-  --indigo-975: color-mix(in lab, oklch(56% 0.26 288), black 88%);
-
-  /* --- Violet  oklch(56% 0.24 300) --- */
-  --violet-025: color-mix(in lab, oklch(56% 0.24 300), white 94%);
-  --violet-050: color-mix(in lab, oklch(56% 0.24 300), white 90%);
-  --violet-100: color-mix(in lab, oklch(56% 0.24 300), white 80%);
-  --violet-200: color-mix(in lab, oklch(56% 0.24 300), white 60%);
-  --violet-300: color-mix(in lab, oklch(56% 0.24 300), white 40%);
-  --violet-400: color-mix(in lab, oklch(56% 0.24 300), white 20%);
-  --violet-500: oklch(56% 0.24 300);
-  --violet-600: color-mix(in lab, oklch(56% 0.24 300), black 16%);
-  --violet-700: color-mix(in lab, oklch(56% 0.24 300), black 32%);
-  --violet-800: color-mix(in lab, oklch(56% 0.24 300), black 48%);
-  --violet-900: color-mix(in lab, oklch(56% 0.24 300), black 64%);
-  --violet-950: color-mix(in lab, oklch(56% 0.24 300), black 76%);
-  --violet-975: color-mix(in lab, oklch(56% 0.24 300), black 88%);
-
-  /* --- Purple  oklch(56% 0.24 320) --- */
-  --purple-025: color-mix(in lab, oklch(56% 0.24 320), white 94%);
-  --purple-050: color-mix(in lab, oklch(56% 0.24 320), white 90%);
-  --purple-100: color-mix(in lab, oklch(56% 0.24 320), white 80%);
-  --purple-200: color-mix(in lab, oklch(56% 0.24 320), white 60%);
-  --purple-300: color-mix(in lab, oklch(56% 0.24 320), white 40%);
-  --purple-400: color-mix(in lab, oklch(56% 0.24 320), white 20%);
-  --purple-500: oklch(56% 0.24 320);
-  --purple-600: color-mix(in lab, oklch(56% 0.24 320), black 16%);
-  --purple-700: color-mix(in lab, oklch(56% 0.24 320), black 32%);
-  --purple-800: color-mix(in lab, oklch(56% 0.24 320), black 48%);
-  --purple-900: color-mix(in lab, oklch(56% 0.24 320), black 64%);
-  --purple-950: color-mix(in lab, oklch(56% 0.24 320), black 76%);
-  --purple-975: color-mix(in lab, oklch(56% 0.24 320), black 88%);
-
-  /* --- Pink  oklch(60% 0.22 4) --- */
-  --pink-025: color-mix(in lab, oklch(60% 0.22 4), white 94%);
-  --pink-050: color-mix(in lab, oklch(60% 0.22 4), white 90%);
-  --pink-100: color-mix(in lab, oklch(60% 0.22 4), white 80%);
-  --pink-200: color-mix(in lab, oklch(60% 0.22 4), white 60%);
-  --pink-300: color-mix(in lab, oklch(60% 0.22 4), white 40%);
-  --pink-400: color-mix(in lab, oklch(60% 0.22 4), white 20%);
-  --pink-500: oklch(60% 0.22 4);
-  --pink-600: color-mix(in lab, oklch(60% 0.22 4), black 16%);
-  --pink-700: color-mix(in lab, oklch(60% 0.22 4), black 32%);
-  --pink-800: color-mix(in lab, oklch(60% 0.22 4), black 48%);
-  --pink-900: color-mix(in lab, oklch(60% 0.22 4), black 64%);
-  --pink-950: color-mix(in lab, oklch(60% 0.22 4), black 76%);
-  --pink-975: color-mix(in lab, oklch(60% 0.22 4), black 88%);
-
-  /* --- Red  oklch(60% 0.22 20) --- */
-  --red-025: color-mix(in lab, oklch(60% 0.22 20), white 94%);
-  --red-050: color-mix(in lab, oklch(60% 0.22 20), white 90%);
-  --red-100: color-mix(in lab, oklch(60% 0.22 20), white 80%);
-  --red-200: color-mix(in lab, oklch(60% 0.22 20), white 60%);
-  --red-300: color-mix(in lab, oklch(60% 0.22 20), white 40%);
-  --red-400: color-mix(in lab, oklch(60% 0.22 20), white 20%);
-  --red-500: oklch(60% 0.22 20);
-  --red-600: color-mix(in lab, oklch(60% 0.22 20), black 16%);
-  --red-700: color-mix(in lab, oklch(60% 0.22 20), black 32%);
-  --red-800: color-mix(in lab, oklch(60% 0.22 20), black 48%);
-  --red-900: color-mix(in lab, oklch(60% 0.22 20), black 64%);
-  --red-950: color-mix(in lab, oklch(60% 0.22 20), black 76%);
-  --red-975: color-mix(in lab, oklch(60% 0.22 20), black 88%);
-
-  /* --- Orange  oklch(70% 0.22 52) --- */
-  --orange-025: color-mix(in lab, oklch(70% 0.22 52), white 94%);
-  --orange-050: color-mix(in lab, oklch(70% 0.22 52), white 90%);
-  --orange-100: color-mix(in lab, oklch(70% 0.22 52), white 80%);
-  --orange-200: color-mix(in lab, oklch(70% 0.22 52), white 60%);
-  --orange-300: color-mix(in lab, oklch(70% 0.22 52), white 40%);
-  --orange-400: color-mix(in lab, oklch(70% 0.22 52), white 20%);
-  --orange-500: oklch(70% 0.22 52);
-  --orange-600: color-mix(in lab, oklch(70% 0.22 52), black 16%);
-  --orange-700: color-mix(in lab, oklch(70% 0.22 52), black 32%);
-  --orange-800: color-mix(in lab, oklch(70% 0.22 52), black 48%);
-  --orange-900: color-mix(in lab, oklch(70% 0.22 52), black 64%);
-  --orange-950: color-mix(in lab, oklch(70% 0.22 52), black 76%);
-  --orange-975: color-mix(in lab, oklch(70% 0.22 52), black 88%);
-
-  /* --- Amber  oklch(79% 0.2 78) --- */
-  --amber-025: color-mix(in lab, oklch(79% 0.2 78), white 94%);
-  --amber-050: color-mix(in lab, oklch(79% 0.2 78), white 90%);
-  --amber-100: color-mix(in lab, oklch(79% 0.2 78), white 80%);
-  --amber-200: color-mix(in lab, oklch(79% 0.2 78), white 60%);
-  --amber-300: color-mix(in lab, oklch(79% 0.2 78), white 40%);
-  --amber-400: color-mix(in lab, oklch(79% 0.2 78), white 20%);
-  --amber-500: oklch(79% 0.2 78);
-  --amber-600: color-mix(in lab, oklch(79% 0.2 78), black 16%);
-  --amber-700: color-mix(in lab, oklch(79% 0.2 78), black 32%);
-  --amber-800: color-mix(in lab, oklch(79% 0.2 78), black 48%);
-  --amber-900: color-mix(in lab, oklch(79% 0.2 78), black 64%);
-  --amber-950: color-mix(in lab, oklch(79% 0.2 78), black 76%);
-  --amber-975: color-mix(in lab, oklch(79% 0.2 78), black 88%);
-
-  /* --- Yellow  oklch(88% 0.24 88) --- */
-  --yellow-025: color-mix(in lab, oklch(88% 0.24 88), white 94%);
-  --yellow-050: color-mix(in lab, oklch(88% 0.24 88), white 90%);
-  --yellow-100: color-mix(in lab, oklch(88% 0.24 88), white 80%);
-  --yellow-200: color-mix(in lab, oklch(88% 0.24 88), white 60%);
-  --yellow-300: color-mix(in lab, oklch(88% 0.24 88), white 40%);
-  --yellow-400: color-mix(in lab, oklch(88% 0.24 88), white 20%);
-  --yellow-500: oklch(88% 0.24 88);
-  --yellow-600: color-mix(in lab, oklch(88% 0.24 88), black 16%);
-  --yellow-700: color-mix(in lab, oklch(88% 0.24 88), black 32%);
-  --yellow-800: color-mix(in lab, oklch(88% 0.24 88), black 48%);
-  --yellow-900: color-mix(in lab, oklch(88% 0.24 88), black 64%);
-  --yellow-950: color-mix(in lab, oklch(88% 0.24 88), black 76%);
-  --yellow-975: color-mix(in lab, oklch(88% 0.24 88), black 88%);
-
-  /* --- Lime  oklch(65% 0.24 135) --- */
-  --lime-025: color-mix(in lab, oklch(65% 0.24 135), white 94%);
-  --lime-050: color-mix(in lab, oklch(65% 0.24 135), white 90%);
-  --lime-100: color-mix(in lab, oklch(65% 0.24 135), white 80%);
-  --lime-200: color-mix(in lab, oklch(65% 0.24 135), white 60%);
-  --lime-300: color-mix(in lab, oklch(65% 0.24 135), white 40%);
-  --lime-400: color-mix(in lab, oklch(65% 0.24 135), white 20%);
-  --lime-500: oklch(65% 0.24 135);
-  --lime-600: color-mix(in lab, oklch(65% 0.24 135), black 16%);
-  --lime-700: color-mix(in lab, oklch(65% 0.24 135), black 32%);
-  --lime-800: color-mix(in lab, oklch(65% 0.24 135), black 48%);
-  --lime-900: color-mix(in lab, oklch(65% 0.24 135), black 64%);
-  --lime-950: color-mix(in lab, oklch(65% 0.24 135), black 76%);
-  --lime-975: color-mix(in lab, oklch(65% 0.24 135), black 88%);
-
-  /* --- Green  oklch(64% 0.22 160) --- */
-  --green-025: color-mix(in lab, oklch(64% 0.22 160), white 94%);
-  --green-050: color-mix(in lab, oklch(64% 0.22 160), white 90%);
-  --green-100: color-mix(in lab, oklch(64% 0.22 160), white 80%);
-  --green-200: color-mix(in lab, oklch(64% 0.22 160), white 60%);
-  --green-300: color-mix(in lab, oklch(64% 0.22 160), white 40%);
-  --green-400: color-mix(in lab, oklch(64% 0.22 160), white 20%);
-  --green-500: oklch(64% 0.22 160);
-  --green-600: color-mix(in lab, oklch(64% 0.22 160), black 16%);
-  --green-700: color-mix(in lab, oklch(64% 0.22 160), black 32%);
-  --green-800: color-mix(in lab, oklch(64% 0.22 160), black 48%);
-  --green-900: color-mix(in lab, oklch(64% 0.22 160), black 64%);
-  --green-950: color-mix(in lab, oklch(64% 0.22 160), black 76%);
-  --green-975: color-mix(in lab, oklch(64% 0.22 160), black 88%);
-
-  /* --- Teal  oklch(68% 0.22 190) --- */
-  --teal-025: color-mix(in lab, oklch(68% 0.22 190), white 94%);
-  --teal-050: color-mix(in lab, oklch(68% 0.22 190), white 90%);
-  --teal-100: color-mix(in lab, oklch(68% 0.22 190), white 80%);
-  --teal-200: color-mix(in lab, oklch(68% 0.22 190), white 60%);
-  --teal-300: color-mix(in lab, oklch(68% 0.22 190), white 40%);
-  --teal-400: color-mix(in lab, oklch(68% 0.22 190), white 20%);
-  --teal-500: oklch(68% 0.22 190);
-  --teal-600: color-mix(in lab, oklch(68% 0.22 190), black 16%);
-  --teal-700: color-mix(in lab, oklch(68% 0.22 190), black 32%);
-  --teal-800: color-mix(in lab, oklch(68% 0.22 190), black 48%);
-  --teal-900: color-mix(in lab, oklch(68% 0.22 190), black 64%);
-  --teal-950: color-mix(in lab, oklch(68% 0.22 190), black 76%);
-  --teal-975: color-mix(in lab, oklch(68% 0.22 190), black 88%);
-
-  /* --- Cyan  oklch(69% 0.22 220) --- */
-  --cyan-025: color-mix(in lab, oklch(69% 0.22 220), white 94%);
-  --cyan-050: color-mix(in lab, oklch(69% 0.22 220), white 90%);
-  --cyan-100: color-mix(in lab, oklch(69% 0.22 220), white 80%);
-  --cyan-200: color-mix(in lab, oklch(69% 0.22 220), white 60%);
-  --cyan-300: color-mix(in lab, oklch(69% 0.22 220), white 40%);
-  --cyan-400: color-mix(in lab, oklch(69% 0.22 220), white 20%);
-  --cyan-500: oklch(69% 0.22 220);
-  --cyan-600: color-mix(in lab, oklch(69% 0.22 220), black 16%);
-  --cyan-700: color-mix(in lab, oklch(69% 0.22 220), black 32%);
-  --cyan-800: color-mix(in lab, oklch(69% 0.22 220), black 48%);
-  --cyan-900: color-mix(in lab, oklch(69% 0.22 220), black 64%);
-  --cyan-950: color-mix(in lab, oklch(69% 0.22 220), black 76%);
-  --cyan-975: color-mix(in lab, oklch(69% 0.22 220), black 88%);
-
-  /* --- Brown  oklch(60% 0.12 54) --- */
-  --brown-025: color-mix(in lab, oklch(60% 0.12 54), white 94%);
-  --brown-050: color-mix(in lab, oklch(60% 0.12 54), white 90%);
-  --brown-100: color-mix(in lab, oklch(60% 0.12 54), white 80%);
-  --brown-200: color-mix(in lab, oklch(60% 0.12 54), white 60%);
-  --brown-300: color-mix(in lab, oklch(60% 0.12 54), white 40%);
-  --brown-400: color-mix(in lab, oklch(60% 0.12 54), white 20%);
-  --brown-500: oklch(60% 0.12 54);
-  --brown-600: color-mix(in lab, oklch(60% 0.12 54), black 16%);
-  --brown-700: color-mix(in lab, oklch(60% 0.12 54), black 32%);
-  --brown-800: color-mix(in lab, oklch(60% 0.12 54), black 48%);
-  --brown-900: color-mix(in lab, oklch(60% 0.12 54), black 64%);
-  --brown-950: color-mix(in lab, oklch(60% 0.12 54), black 76%);
-  --brown-975: color-mix(in lab, oklch(60% 0.12 54), black 88%);
-
-  /* --- Gray  oklch(60% 0.02 245) --- */
-  --gray-025: color-mix(in lab, oklch(60% 0.02 245), white 94%);
-  --gray-050: color-mix(in lab, oklch(60% 0.02 245), white 90%);
-  --gray-100: color-mix(in lab, oklch(60% 0.02 245), white 80%);
-  --gray-200: color-mix(in lab, oklch(60% 0.02 245), white 60%);
-  --gray-300: color-mix(in lab, oklch(60% 0.02 245), white 40%);
-  --gray-400: color-mix(in lab, oklch(60% 0.02 245), white 20%);
-  --gray-500: oklch(60% 0.02 245);
-  --gray-600: color-mix(in lab, oklch(60% 0.02 245), black 16%);
-  --gray-700: color-mix(in lab, oklch(60% 0.02 245), black 32%);
-  --gray-800: color-mix(in lab, oklch(60% 0.02 245), black 48%);
-  --gray-900: color-mix(in lab, oklch(60% 0.02 245), black 64%);
-  --gray-950: color-mix(in lab, oklch(60% 0.02 245), black 76%);
-  --gray-975: color-mix(in lab, oklch(60% 0.02 245), black 88%);
-
-  /* --- Pewter  oklch(65% 0.01 290) --- */
-  --pewter-025: color-mix(in lab, oklch(65% 0.01 290), white 94%);
-  --pewter-050: color-mix(in lab, oklch(65% 0.01 290), white 90%);
-  --pewter-100: color-mix(in lab, oklch(65% 0.01 290), white 80%);
-  --pewter-200: color-mix(in lab, oklch(65% 0.01 290), white 60%);
-  --pewter-300: color-mix(in lab, oklch(65% 0.01 290), white 40%);
-  --pewter-400: color-mix(in lab, oklch(65% 0.01 290), white 20%);
-  --pewter-500: oklch(65% 0.01 290);
-  --pewter-600: color-mix(in lab, oklch(65% 0.01 290), black 16%);
-  --pewter-700: color-mix(in lab, oklch(65% 0.01 290), black 32%);
-  --pewter-800: color-mix(in lab, oklch(65% 0.01 290), black 48%);
-  --pewter-900: color-mix(in lab, oklch(65% 0.01 290), black 64%);
-  --pewter-950: color-mix(in lab, oklch(65% 0.01 290), black 76%);
-  --pewter-975: color-mix(in lab, oklch(65% 0.01 290), black 88%);
-
-  /* Absolute anchors */
-  --white: #fff;
-  --black: #000;
+.umd-color-blue {
+  color: var(--umd-color-blue);
 }
 
-:root {
-  /*
-   * Semantic tokens (primary, success, danger, …) are NOT defined here.
-   * They are the responsibility of the application or theme layer.
-   * Additional palettes can be injected via ParserOptions.colors
-   * with a custom prefix (e.g. "tw-blue" → --tw-blue-050 … --tw-blue-975).
-   *
-   * color-scheme enables the browser's automatic light/dark switching so
-   * that any light-dark() calls in the theme layer work correctly.
-   */
-  color-scheme: light dark;
+.umd-color-indigo {
+  color: var(--umd-color-indigo);
+}
+
+.umd-color-violet {
+  color: var(--umd-color-violet);
+}
+
+.umd-color-purple {
+  color: var(--umd-color-purple);
+}
+
+.umd-color-pink {
+  color: var(--umd-color-pink);
+}
+
+.umd-color-red {
+  color: var(--umd-color-red);
+}
+
+.umd-color-orange {
+  color: var(--umd-color-orange);
+}
+
+.umd-color-amber {
+  color: var(--umd-color-amber);
+}
+
+.umd-color-yellow {
+  color: var(--umd-color-yellow);
+}
+
+.umd-color-lime {
+  color: var(--umd-color-lime);
+}
+
+.umd-color-green {
+  color: var(--umd-color-green);
+}
+
+.umd-color-teal {
+  color: var(--umd-color-teal);
+}
+
+.umd-color-cyan {
+  color: var(--umd-color-cyan);
+}
+
+.umd-color-brown {
+  color: var(--umd-color-brown);
+}
+
+.umd-color-gray {
+  color: var(--umd-color-gray);
+}
+
+.umd-color-pewter {
+  color: var(--umd-color-pewter);
+}
+
+.umd-bg-blue {
+  background-color: var(--umd-bg-blue);
+}
+
+.umd-bg-indigo {
+  background-color: var(--umd-bg-indigo);
+}
+
+.umd-bg-violet {
+  background-color: var(--umd-bg-violet);
+}
+
+.umd-bg-purple {
+  background-color: var(--umd-bg-purple);
+}
+
+.umd-bg-pink {
+  background-color: var(--umd-bg-pink);
+}
+
+.umd-bg-red {
+  background-color: var(--umd-bg-red);
+}
+
+.umd-bg-orange {
+  background-color: var(--umd-bg-orange);
+}
+
+.umd-bg-amber {
+  background-color: var(--umd-bg-amber);
+}
+
+.umd-bg-yellow {
+  background-color: var(--umd-bg-yellow);
+}
+
+.umd-bg-lime {
+  background-color: var(--umd-bg-lime);
+}
+
+.umd-bg-green {
+  background-color: var(--umd-bg-green);
+}
+
+.umd-bg-teal {
+  background-color: var(--umd-bg-teal);
+}
+
+.umd-bg-cyan {
+  background-color: var(--umd-bg-cyan);
+}
+
+.umd-bg-brown {
+  background-color: var(--umd-bg-brown);
+}
+
+.umd-bg-gray {
+  background-color: var(--umd-bg-gray);
+}
+
+.umd-bg-pewter {
+  background-color: var(--umd-bg-pewter);
 }
