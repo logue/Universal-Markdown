@@ -1,0 +1,143 @@
+/*
+ * UMD Typography
+ *
+ * Font stacks default to the OS-native fonts for each category
+ * (zero webfont cost). To opt into a webfont (Noto Sans/Serif, IBM Plex,
+ * Twemoji, …), override --umd-font-* — no change to this file required.
+ */
+
+:root {
+  /*
+   * CJK coverage beyond Japanese: Korean (Apple SD Gothic Neo / Malgun
+   * Gothic) and Chinese, Simplified + Traditional (PingFang SC/TC,
+   * Microsoft YaHei/JhengHei), so those scripts don't fall through to
+   * generic sans-serif (tofu risk) on a JP-tuned stack.
+   *
+   * "Noto Sans JP" (no "CJK") is the family name Windows 11 actually
+   * bundles and what Google Fonts/Android ship; "Noto Sans CJK JP" is the
+   * older Adobe/Google noto-cjk naming still common on Linux — kept as a
+   * second fallback since the two are registered as distinct families.
+   *
+   * This is one glyph-fallback list, not per-language stacks: for a run of
+   * Han ideographs, whichever CJK font appears first that has the glyph
+   * wins, which can render Chinese text with Japanese glyph shapes (Han
+   * unification) since JP fonts are listed first. Fine for "don't show
+   * tofu"; for glyph-accurate mixed JP/CN content, scope per language with
+   * :lang() instead.
+   */
+  --umd-font-sans:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    "Hiragino Kaku Gothic ProN",
+    "Hiragino Sans",
+    "Yu Gothic",
+    Meiryo,
+    "Apple SD Gothic Neo",
+    "Malgun Gothic",
+    "PingFang SC",
+    "PingFang TC",
+    "Microsoft YaHei",
+    "Microsoft JhengHei",
+    "Noto Sans JP",
+    "Noto Sans KR",
+    "Noto Sans SC",
+    "Noto Sans TC",
+    "Noto Sans CJK JP",
+    sans-serif;
+
+  --umd-font-serif:
+    Georgia,
+    Cambria,
+    "Times New Roman",
+    Times,
+    "Hiragino Mincho ProN",
+    "Yu Mincho",
+    YuMincho,
+    "MS PMincho",
+    AppleMyungjo,
+    Batang,
+    "Songti SC",
+    "Songti TC",
+    SimSun,
+    PMingLiU,
+    serif;
+
+  /*
+   * Deliberately no CJK fallback here (unlike --umd-font-sans/-serif).
+   * Fallback glyphs render at the fallback font's own advance width, not
+   * the primary font's cell width — and CJK monospace fonts fix full-width
+   * chars to exactly 2x their half-width, while Latin monospace fonts
+   * commonly run closer to 3:2. Mixing the two breaks column alignment
+   * (ASCII art, aligned comments) rather than preserving it. Vertical
+   * writing mode for code blocks is also unresolved. Revisit with an
+   * actual design rather than bolting on a font name.
+   */
+  --umd-font-mono:
+    ui-monospace,
+    SFMono-Regular,
+    "SF Mono",
+    Menlo,
+    Consolas,
+    "Liberation Mono",
+    monospace;
+}
+
+/*
+ * Most CJK typefaces ship one weight and rely on the renderer's
+ * algorithmic (faux) bold, which looks muddy on the dense strokes of
+ * kanji at body-text sizes. Yu Gothic is an exception — it ships a
+ * genuinely separate bold face — but Windows doesn't reliably group it
+ * under one family for weight matching, so `font-weight: bold` on plain
+ * "Yu Gothic" often falls back to faux bold anyway. Repoint normal/bold
+ * at the real local faces explicitly.
+ *
+ * "Yu Gothic UI" (a distinct family, tuned for OS chrome, not prose) is
+ * deliberately excluded from --umd-font-sans so this rule is reachable at
+ * all — leaving it in the stack would let the browser match it first and
+ * skip past this @font-face entirely.
+ *
+ * Known caveat: Chrome on Windows has a long-standing history of ignoring
+ * this local() weight mapping and faux-bolding regardless; Firefox and
+ * Edge honor it. On systems without a local "Yu Gothic" match (macOS,
+ * Linux, mobile), these rules simply fail to resolve and the browser
+ * falls through to the next family in --umd-font-sans — harmless no-op.
+ */
+@font-face {
+  font-family: "Yu Gothic";
+  font-weight: normal;
+  src:
+    local("Yu Gothic Medium"),
+    local("YuGothic-Medium"),
+    local("Yu Gothic");
+}
+
+@font-face {
+  font-family: "Yu Gothic";
+  font-weight: bold;
+  src:
+    local("Yu Gothic Bold"),
+    local("YuGothic-Bold");
+}
+
+:where(body) {
+  font-family: var(--umd-font-sans);
+}
+
+:where(code, kbd, samp, pre) {
+  font-family: var(--umd-font-mono);
+}
+
+/*
+ * font-style: italic is deliberately left as the browser default (including
+ * for CJK, where it falls back to upright or an inconsistent synthesized
+ * oblique). A blanket :lang()-based override isn't safe here: vertical
+ * writing modes need the opposite skew axis, and scripts like Thai (mark
+ * stacking) or Arabic (cursive joining) can break under a naive skew.
+ * A manual, opt-in fake-italic utility for authors who've checked their
+ * specific script/writing-mode combination lives in utilities/text.scss
+ * (.umd-italic-skew) instead of being forced on here.
+ */

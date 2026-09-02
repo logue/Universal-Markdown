@@ -1,6 +1,7 @@
 @layer umd.reset, umd.base, umd.components, umd.utilities, umd.overrides;
 
 @import "./tokens.scss" layer(umd.base);
+@import "./typography.scss" layer(umd.base);
 @import "./base.scss" layer(umd.base);
 @import "./components/code-block.scss" layer(umd.components);
 @import "./components/content.scss" layer(umd.components);

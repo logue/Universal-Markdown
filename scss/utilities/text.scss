@@ -51,3 +51,13 @@
 .umd-text-size-xl {
   font-size: x-large;
 }
+
+/* Fake italic via skew, for scripts with no true italic forms (e.g. CJK).
+   Opt-in only — apply by hand to a span you've verified renders correctly;
+   not safe as a blanket rule (wrong skew axis under vertical writing modes,
+   can break Thai mark stacking / Arabic cursive joining). See typography.scss. */
+.umd-italic-skew {
+  display: inline-block;
+  font-style: normal;
+  transform: skew(-12deg);
+}

@@ -3,7 +3,7 @@
 **プロジェクト概要**: Markdownを超える次世代マークアップ言語。CommonMark仕様テスト 75%+ パス、Bootstrap 5統合、セマンティックHTML、拡張可能なプラグインシステム提供。
 
 **作成日**: 2026年1月23日  
-**最終更新**: 2026年8月23日  
+**最終更新**: 2026年8月26日  
 **Rustバージョン**: 1.98.0 (Edition 2024)  
 **ライセンス**: Apache-2.0
 
@@ -64,11 +64,13 @@
 - 🔮 リファレンスCSS提供（スタイル定義の標準化）
 - 🔮 テンプレートエンジン機能の検討と仕様策定
 - 🔮 フロントエンド向けのシンタックスハイライト改善
+- 🔮 テキスト装飾記法の追加（`^^` / `~~` / `==` / `&outline()`）
 - 🔮 挿入・削除記法（`{+ +}` / `{- -}`）の追加
 - 🔮 パーサーレベルの定義（チャット運用時、コメント運用時、ドキュメント作成時）
 - 🔮 リンク・画像の `integrity` 属性対応（SRI）
 - 🔮 フロントマターのTSON対応（区切り文字 `***`）
 - 🔮 ボトムマター仕様策定
+- 🔮 AAプラグイン（決め打ちフォント指定によるアスキーアート表示、例: MS Pゴシック）— 文字幅依存が強くリファレンスCSS/コアの責務にできないためプラグインとして分離
 
 ---
 
@@ -124,6 +126,57 @@ content
 - [x] 入れ子検出・エラーハンドリング実装（最初に現れる `:::` のみの行で閉じることで、入れ子部分は生テキストとして無害化）
 - [x] テスト suite 追加（`plugin_markers` 単体テスト、`tests/conflict_resolution.rs` の統合テスト）
 - [x] ドキュメント更新（[docs/plugin-system.md](docs/plugin-system.md) / [docs/block-plugins.md](docs/block-plugins.md)）
+
+---
+
+## テキスト装飾記法
+
+### 概要（テキスト装飾）
+
+CommonMark の `~~strikethrough~~` を廃止し、テキスト装飾記法を再設計します。各記号がCSS `text-decoration` の値に1対1で対応する「文法の直交性」を重視した設計です。
+
+| 記法 | 出力要素 | CSS | 備考 |
+|------|----------|-----|------|
+| `__text__` | `<u>` | `text-decoration: underline` | Discord互換 |
+| `^^text^^` | `<span class="umd-overline">` | `text-decoration: overline` | `^`は「上」のニーモニック、ASCII範囲内 |
+| `~~text~~` | `<span class="umd-wavy">` | `text-decoration: underline wavy` | `~~`の形が波線に対応 |
+| `==text==` | `<span class="umd-overunderline">` | `text-decoration: underline overline` | 上下ライン |
+| `{- text -}` | `<del>` | ブラウザデフォルト | diff記法の`-`に対応、スペース必須 |
+
+> ⚠️ CommonMarkの `~~strikethrough~~` との非互換あり。UMDは意図的にこの仕様を変更しています。
+
+### 袋文字プラグイン（`&outline()`）
+
+背景色変更の代替として、より視覚的に目立つテキスト装飾手段を提供します。
+
+```umd
+&outline(){text}                 ← デフォルト（白文字・黒縁）
+&outline(red){text}              ← fill=red、stroke=デフォルト
+&outline(white, blue){text}      ← fill=white、stroke=blue
+```
+
+**パラメータ**:
+- `fill`（第1引数）: 文字の塗り色。デフォルト = `--umd-body-bg`（背景色）
+- `stroke`（第2引数）: 輪郭色。デフォルト = `--umd-body-color`（前景色）
+
+**実装**: `-webkit-text-stroke` + `paint-order: stroke fill`（`text-shadow` 多重描画は使用しない）
+
+```html
+<!-- &outline(){text} -->
+<span class="umd-outline">text</span>
+
+<!-- &outline(white, blue){text} -->
+<span class="umd-outline" style="--umd-outline-fill: white; --umd-outline-stroke: blue;">text</span>
+```
+
+### 実装計画（テキスト装飾）
+
+- [ ] `^^`、`~~`（波線）、`==` の字句解析・構文解析実装
+- [ ] 対応CSSクラスの生成（`umd-overline` / `umd-wavy` / `umd-overunderline`）
+- [ ] `&outline()` プラグイン実装（CSS変数インライン注入）
+- [x] `components/outline.scss` 追加済み
+- [ ] テスト suite 追加
+- [ ] ドキュメント更新
 
 ---
 
@@ -196,7 +249,7 @@ content
 ### 検討事項
 
 - 色の仕様はまだまとまっておらず、レベルとは関係なく、オプションでプリセットカラー（現時点では Bootstrap の色）だけを許可するか、HEX・RGBA・HSL なども許可するかを検討中です。
-- 文字サイズの仕様は一考の余地あり（`xs` / `sm` / `lg` / `xl` のような文字ベースの指定や、数字ベースの指定など）。
+- 文字サイズは `&size(xs/sm/lg/xl){text}` の記法で確定。CSSキーワード値（`x-small` / `small` / `large` / `x-large`）のみ使用し、ピクセル指定はオプション（デフォルト無効）。
 - 標準プラグイン以外のプラグイン使用可否は、このライブラリを使用するホストプログラムの責務とし、このレベルには定義を含めません。
 
 ---
@@ -303,6 +356,60 @@ Subresource Integrity (SRI) 相当のハッシュ検証をリンク・画像に�
 
 現在Bootstrap 5のユーティリティクラス（`d-block`、`text-primary`など）に依存して出力しているHTMLを、Bootstrap本体への依存から切り離し、CSS Layer（`@layer`）を使ったミニマムなリファレンスCSSで置き換える計画です。
 
+### クラス名改名一覧（2026年8月実施済み）
+
+**display.scss**
+
+| 旧 | 新 | CSS |
+|---|---|---|
+| `.d-block` | `.umd-block` | `display: block` |
+| `.d-inline-block` | `.umd-inline-block` | `display: inline-block` |
+| `.d-none` | `.umd-hidden` | `display: none` |
+| `.w-100` | `.umd-block-justify` | `inline-size: 100%` |
+| `.w-auto` | `.umd-block-center` | `inline-size: auto; margin-inline: auto` |
+
+**text.scss**
+
+| 旧 | 新 | CSS |
+|---|---|---|
+| `.text-center` | `.umd-center` | `text-align: center` |
+| `.text-end` | `.umd-end` | `text-align: end` |
+| （新規）| `.umd-start` | `text-align: start` |
+| （新規）| `.umd-justify` | `text-align: justify` |
+| （新規）| `.umd-v-start/center/end` | `vertical-align: top/middle/bottom` |
+| （新規）| `.umd-text-size-xs/sm/lg/xl` | `font-size: x-small/small/large/x-large` |
+| `.fs-4` | （削除）| — |
+
+**spacing.scss**
+
+| 旧 | 新 | CSS |
+|---|---|---|
+| `.mx-auto` | `.umd-inline-center` | `margin-inline: auto` |
+| `.ms-auto` | `.umd-block-end` | `margin-inline-start: auto` |
+| `.me-auto` | `.umd-block-start` | `margin-inline-end: auto` |
+| `.me-0` | （削除）| — |
+
+**components/content.scss**
+
+| 旧 | 新 |
+|---|---|
+| `.blockquote`（エイリアス） | 削除（`.umd-blockquote` のみ） |
+| `.spoiler` | `.umd-spoiler` |
+| `.inline-code-color` | `.umd-color-swatch` |
+
+**components/code-block.scss**
+
+| 旧 | 新 |
+|---|---|
+| `.code-block` | `.umd-code-block` |
+| `.code-title` | `.umd-code-title` |
+
+**base.scss**
+
+| 旧 | 新 |
+|---|---|
+| `.footnotes` | `.umd-footnotes` |
+
 ### 基本ルール（脱Bootstrap化）
 
 1. CSS Layerを用いたリファレンスCSSを新設し、Bootstrap本体を必須依存から外す
@@ -358,17 +465,17 @@ CSS 仕様に `vertical-align` の論理的代替が存在しないため、`V-`
 
 ### 検討事項（脱Bootstrap化）
 
-- ユーティリティクラスの具体的な命名規則（プレフィックスの形式、既存Bootstrapクラスとの対応表）
 - 意味を持つ色（`primary`/`danger`等）のオプション指定方法（CSS変数、テーマ設定オブジェクト、ビルド時設定など）の具体化
 - 既存のBootstrap前提ドキュメント（`docs/architecture.md`等）との整合、移行パス（Bootstrap版との共存可否）
 - リファレンスCSSの配布方法（npm パッケージ、CDN、生成物としてのみ提供 等）
 
 ### 実装計画（脱Bootstrap化）
 
-- [ ] CSS Layer構成の設計（`@layer umd, umd-overrides` 等の層構造）
-- [ ] クラス名改名マッピングの確定
-- [ ] 意味を持つ色のオプション指定機構の設計・実装
-- [ ] ミニマムなリファレンスCSSの実装
+- [x] CSS Layer構成の設計（`@layer umd.reset, umd.base, umd.components, umd.utilities, umd.overrides`）
+- [x] クラス名改名マッピングの確定・実施
+- [x] セマンティックトークン（`primary`/`danger`等）の除去、ホスト側責務として明記
+- [x] リファレンスCSS実装（`scss/` 配下の全ファイル整備）
+- [x] `tokens.scss`: `light-dark()` によるダークモード一本化、パレット変数参照に移行
 - [ ] Bootstrap依存コードの置き換え（`src/extensions/` 配下のクラス生成箇所）
 - [ ] 既存テスト（`bootstrap_integration.rs` 等）の移行方針検討
 - [ ] ドキュメント更新
@@ -389,6 +496,17 @@ CSS 仕様に `vertical-align` の論理的代替が存在しないため、`V-`
 ---
 
 ## 最近の実装（2026年8月）
+
+### 2026年8月26日
+
+#### リファレンスCSS整備・クラス名umd-*統一
+
+- 全SCSSファイルのBootstrapクラス名を `umd-*` プレフィックスへ改名（詳細は上表）
+- `tokens.scss`: セマンティックトークン（`--umd-color-primary/success/danger/warning`）を削除、`light-dark()` に一本化、ハードコーディングされたhex値をOKLCHパレット変数参照へ置換
+- `base.scss`: 全方向プロパティをCSS論理プロパティへ置換、`abbr[title]` スタイル追加（点線下線・緑・`cursor: help`）
+- `components/outline.scss` 新規追加: 袋文字実装（`-webkit-text-stroke` + `paint-order: stroke fill`）
+- `utilities/text.scss`: 縦方向アライメント（`umd-v-*`）・テキストサイズ（`umd-text-size-*`）クラス追加
+- テキスト装飾記法の確定（`^^`/`~~`/`==`、`&outline()`、`&size()`）
 
 ### 2026年8月15日
 
@@ -528,6 +646,15 @@ CSS 仕様に `vertical-align` の論理的代替が存在しないため、`V-`
    - ユーザー向けエラーログ実装
    - デバッグモード（verbose）オプション
 
+3. **syntect・mermaid-rs-renderer のオプショナル化**
+   - 現状: シンタックスハイライト（syntect）とMermaid SSR（mermaid-rs-renderer）がコアのWASMバイナリに含まれており、バイナリサイズを圧迫している
+   - 方針: 将来的に `umd-highlight` / `umd-mermaid` として別パッケージへ分離し、コアをミニマムに保つ
+   - 背景:
+     - **CSS Custom Highlight API** がChrome/Edge/Safari で実装済み・Firefox対応中。軽量クライアントサイドライブラリへの移行が現実的になりつつある
+     - **Mermaid** は仕様が流動的で本家の破壊的変更に引きずられるリスクが高い。ホスト側の責務とする方がアーキテクチャ的に正しい
+     - SEOへの影響はGoogleがJSを実行するため、コードブロックのSSRハイライトの優位性は限定的
+   - 移行タイミング: CSS Custom Highlight APIのブラウザサポートが揃い、軽量ライブラリが成熟した段階
+
 ---
 
 ## 仕様確定事項
@@ -536,7 +663,14 @@ CSS 仕様に `vertical-align` の論理的代替が存在しないため、`V-`
 
 - ✅ **URL 自動リンク**: `<URL>` 形式のみサポート（裸 URL は非推奨）
 - ✅ **URL スキーム**: `javascript:`, `data:`, `vbscript:`, `file:` ブロック
-- ✅ **下線構文**: `__text__` → `<u>` (Discord 風)
+- ✅ **テキスト装飾記法**: 以下の記法を確定
+  - `__text__` → `<u>` アンダーライン
+  - `^^text^^` → `<span>` オーバーライン（`^`は「上」のニーモニック、ASCII範囲内）
+  - `~~text~~` → `<span>` 波線アンダーライン（`~~`の形が波線に対応）
+  - `==text==` → `<span>` アンダーライン + オーバーライン
+  - `{- text -}` → `<del>` 削除（diff記法の`-`に対応）
+- ✅ **袋文字プラグイン**: `&outline(fill, stroke){text}` — `-webkit-text-stroke` + `paint-order: stroke fill`
+- ✅ **文字サイズ記法**: `&size(xs/sm/lg/xl){text}` — CSSキーワード値のみ（ピクセル指定はオプション、デフォルト無効）
 - ✅ **数式構文**: `&math(LaTeX);` ($ 記号非採用)
 - ✅ **フットノート**: JSON 構造化データ出力
 - ✅ **絵文字**: Unicode 直接入力推奨、ショートコード非サポート
