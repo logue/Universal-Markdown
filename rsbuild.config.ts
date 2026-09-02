@@ -17,6 +17,7 @@ export default defineConfig({
 		sourceMap: false,
 		filename: {
 			css: "[name].css",
+			font: "[name][ext]",
 		},
 	},
 });

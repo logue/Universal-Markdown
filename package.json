@@ -9,5 +9,8 @@
 	"devDependencies": {
 		"@rsbuild/core": "^2.1.13",
 		"@rsbuild/plugin-sass": "^2.0.1"
+	},
+	"dependencies": {
+		"@sableclient/twemoji-font": "^1.0.4"
 	}
 }

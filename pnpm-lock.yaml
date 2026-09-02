@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      '@sableclient/twemoji-font':
+        specifier: ^1.0.4
+        version: 1.0.4
     devDependencies:
       '@rsbuild/core':
         specifier: ^2.1.13
@@ -226,6 +230,9 @@ packages:
         optional: true
       '@swc/helpers':
         optional: true
+
+  '@sableclient/twemoji-font@1.0.4':
+    resolution: {integrity: sha512-LzvQB/VZtv5KEq1VYq2azr7v7cYT8oklOVRGkAN2RNwa3sF0XcnqM3lBHSYRFXQleGLSUgs3gA0slbwkD2+sJw==}
 
   '@swc/helpers@0.5.23':
     resolution: {integrity: sha512-5lSsMOTXURePglDfvuAQUqkGek9Hg2kksOYay2m0+XR++b2NWYL/4sWyuvVBIs8oKnJaxkdi9whaL/sqN13afw==}
@@ -621,6 +628,8 @@ snapshots:
       '@rspack/binding': 2.1.10
     optionalDependencies:
       '@swc/helpers': 0.5.23
+
+  '@sableclient/twemoji-font@1.0.4': {}
 
   '@swc/helpers@0.5.23':
     dependencies:
