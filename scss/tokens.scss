@@ -31,4 +31,9 @@
   /* Code */
   --umd-code-bg: light-dark(var(--gray-025), var(--gray-950));
   --umd-code-color: light-dark(var(--gray-900), var(--gray-050));
+
+  /* Fixed-meaning component colors — not brand/theme roles, so they live
+     here rather than being left to the application like primary/success/danger. */
+  --umd-abbr-color: light-dark(var(--green-600), var(--green-400));
+  --umd-idn-warning-color: light-dark(var(--yellow-600), var(--yellow-400));
 }

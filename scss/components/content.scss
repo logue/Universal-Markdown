@@ -24,7 +24,7 @@
 }
 
 :where(.umd-idn-warning-icon) {
-  color: light-dark(var(--yellow-600), var(--yellow-400));
+  color: var(--umd-idn-warning-color);
   display: inline-block;
   margin-inline-start: 0.35em;
 }
