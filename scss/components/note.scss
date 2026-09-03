@@ -13,7 +13,12 @@
  *
  * Type taxonomy: the GFM 5 (note/tip/important/warning/caution) plus a
  * prescriptive-guidance set modeled on RFC 2119 (must=MUST,
- * recommend=SHOULD, dont=SHOULD NOT, never=MUST NOT).
+ * recommend=SHOULD, dont=SHOULD NOT, never=MUST NOT), plus example.
+ *
+ * Partial Digital Publishing WAI-ARIA (DPUB-ARIA) conformance: note, tip,
+ * and example carry a role attribute (doc-notice/doc-tip/doc-example with
+ * their spec-defined ARIA fallback) since those three have a real DPUB-ARIA
+ * counterpart — the rest don't, so they're plain <aside> with no role.
  */
 
 :where(.umd-note) {
@@ -143,4 +148,17 @@
 
 :where(.umd-note-never .umd-note-title)::before {
   content: "⛔ ";
+}
+
+:where(.umd-note-example) {
+  background-color: var(--umd-bg-gray);
+  border-inline-start-color: var(--umd-color-gray);
+}
+
+:where(.umd-note-example .umd-note-title) {
+  color: var(--umd-color-gray);
+}
+
+:where(.umd-note-example .umd-note-title)::before {
+  content: "📄 ";
 }

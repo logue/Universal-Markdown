@@ -22,7 +22,7 @@ fn test_bootstrap_blockquote_default_class() {
 fn test_gfm_alert_note() {
     let input = "> [!NOTE]\n> This is an informational note";
     let output = parse(input);
-    assert!(output.contains(r#"<aside class="umd-note umd-note-note">"#));
+    assert!(output.contains(r#"<aside class="umd-note umd-note-note" role="doc-notice note">"#));
     assert!(output.contains(r#"<p class="umd-note-title">Note</p>"#));
     assert!(output.contains("This is an informational note"));
 }
@@ -39,7 +39,7 @@ fn test_gfm_alert_warning() {
 fn test_gfm_alert_tip() {
     let input = "> [!TIP]\n> Here's a helpful tip";
     let output = parse(input);
-    assert!(output.contains(r#"<aside class="umd-note umd-note-tip">"#));
+    assert!(output.contains(r#"<aside class="umd-note umd-note-tip" role="doc-tip note">"#));
     assert!(output.contains(r#"<p class="umd-note-title">Tip</p>"#));
 }
 

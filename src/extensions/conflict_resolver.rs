@@ -1212,8 +1212,16 @@ fn apply_bootstrap_enhancements(html: &str, header_map: &HeaderIdMap) -> String 
     // may use Bootstrap's alert component itself, so UMD doesn't borrow its classes.
     // Keyword aliases (DANGER/SUCCESS/WARN/INFO) are resolved here; the stylesheet only
     // needs to style the canonical type each alias maps to.
+    //
+    // Partial Digital Publishing WAI-ARIA (DPUB-ARIA) role, where a type has a real
+    // DPUB-ARIA counterpart: doc-notice (note), doc-tip (tip), doc-example (example),
+    // each with its ARIA fallback role per the DPUB-ARIA spec's fallback mapping
+    // (doc-notice/doc-tip -> note, doc-example -> region). The remaining types
+    // (important/warning/caution/must/recommend/dont/never) have no DPUB-ARIA
+    // equivalent, so they're left without a role attribute rather than forced
+    // into "note" semantics that wouldn't actually describe them.
     let gfm_alert_pattern = Regex::new(
-        r#"<blockquote class="blockquote">\s*<p>\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION|DANGER|MUST|RECOMMEND|DONT|NEVER|SUCCESS|WARN|INFO)\]\s*(.*?)</p>\s*</blockquote>"#
+        r#"<blockquote class="blockquote">\s*<p>\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION|DANGER|MUST|RECOMMEND|DONT|NEVER|SUCCESS|WARN|INFO|EXAMPLE)\]\s*(.*?)</p>\s*</blockquote>"#
     ).unwrap();
 
     result = gfm_alert_pattern
@@ -1221,22 +1229,23 @@ fn apply_bootstrap_enhancements(html: &str, header_map: &HeaderIdMap) -> String 
             let alert_type = &caps[1];
             let content = &caps[2];
 
-            let (note_type, label) = match alert_type {
-                "NOTE" | "SUCCESS" => ("note", "Note"),
-                "TIP" | "INFO" => ("tip", "Tip"),
-                "IMPORTANT" => ("important", "Important"),
-                "WARNING" | "WARN" => ("warning", "Warning"),
-                "CAUTION" | "DANGER" => ("caution", "Caution"),
-                "MUST" => ("must", "Must"),
-                "RECOMMEND" => ("recommend", "Recommend"),
-                "DONT" => ("dont", "Don't"),
-                "NEVER" => ("never", "Never"),
-                _ => ("note", "Note"),
+            let (note_type, label, role) = match alert_type {
+                "NOTE" | "SUCCESS" => ("note", "Note", " role=\"doc-notice note\""),
+                "TIP" | "INFO" => ("tip", "Tip", " role=\"doc-tip note\""),
+                "IMPORTANT" => ("important", "Important", ""),
+                "WARNING" | "WARN" => ("warning", "Warning", ""),
+                "CAUTION" | "DANGER" => ("caution", "Caution", ""),
+                "MUST" => ("must", "Must", ""),
+                "RECOMMEND" => ("recommend", "Recommend", ""),
+                "DONT" => ("dont", "Don't", ""),
+                "NEVER" => ("never", "Never", ""),
+                "EXAMPLE" => ("example", "Example", " role=\"doc-example region\""),
+                _ => ("note", "Note", " role=\"doc-notice note\""),
             };
 
             format!(
-                "<aside class=\"umd-note umd-note-{}\"><p class=\"umd-note-title\">{}</p><p>{}</p></aside>",
-                note_type, label, content
+                "<aside class=\"umd-note umd-note-{}\"{}><p class=\"umd-note-title\">{}</p><p>{}</p></aside>",
+                note_type, role, label, content
             )
         })
         .to_string();
@@ -1457,9 +1466,36 @@ mod tests {
         let header_map = HeaderIdMap::new();
         let input = r#"<blockquote class="blockquote"><p>[!NOTE] This is a note</p></blockquote>"#;
         let output = postprocess_conflicts(input, &header_map);
-        assert!(output.contains(r#"<aside class="umd-note umd-note-note">"#));
+        assert!(output.contains(r#"<aside class="umd-note umd-note-note" role="doc-notice note">"#));
         assert!(output.contains(r#"<p class="umd-note-title">Note</p>"#));
         assert!(output.contains("This is a note"));
+    }
+
+    #[test]
+    fn test_gfm_alert_example() {
+        let header_map = HeaderIdMap::new();
+        let input = r#"<blockquote class="blockquote"><p>[!EXAMPLE] Sample usage</p></blockquote>"#;
+        let output = postprocess_conflicts(input, &header_map);
+        assert!(output.contains(r#"<aside class="umd-note umd-note-example" role="doc-example region">"#));
+        assert!(output.contains(r#"<p class="umd-note-title">Example</p>"#));
+    }
+
+    #[test]
+    fn test_gfm_alert_types_without_dpub_role_have_no_role_attr() {
+        let header_map = HeaderIdMap::new();
+        for input_type in ["IMPORTANT", "WARNING", "CAUTION", "MUST", "RECOMMEND", "DONT", "NEVER"] {
+            let input = format!(
+                r#"<blockquote class="blockquote"><p>[!{}] Body</p></blockquote>"#,
+                input_type
+            );
+            let output = postprocess_conflicts(&input, &header_map);
+            assert!(
+                !output.contains(" role="),
+                "expected no role attribute for [!{}]: {}",
+                input_type,
+                output
+            );
+        }
     }
 
     #[test]
