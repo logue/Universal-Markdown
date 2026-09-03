@@ -352,11 +352,26 @@ mod tests {
     }
 
     #[test]
-    fn test_html_escaping() {
+    fn test_html_injection_neutralized() {
+        // Raw-HTML safety is comrak's job (render.unsafe = false), not a
+        // pre-escape pass — see sanitizer.rs module docs. Comrak recognizes
+        // the <script> tag as an HTML construct and drops it during render.
         let input = "<script>alert('xss')</script>";
         let output = parse(input);
         assert!(!output.contains("<script>"));
-        assert!(output.contains("&lt;script&gt;"));
+        assert!(output.contains("<!-- raw HTML omitted -->"));
+    }
+
+    #[test]
+    fn test_blockquote_survives_sanitization() {
+        // Regression test: an earlier pre-escape pass turned every
+        // line-leading `>` into `&gt;` before comrak could parse it as a
+        // blockquote marker, silently breaking both plain blockquotes and
+        // GFM-alert-style ([!NOTE] etc.) blocks end-to-end.
+        let input = "> A plain blockquote";
+        let output = parse(input);
+        assert!(output.contains("<blockquote"));
+        assert!(output.contains("A plain blockquote"));
     }
 
     #[test]

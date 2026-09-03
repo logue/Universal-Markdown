@@ -13,31 +13,34 @@ fn test_bootstrap_table_default_class() {
 
 #[test]
 fn test_bootstrap_blockquote_default_class() {
-    // Note: Due to sanitization, Markdown blockquote syntax (>) is escaped.
-    // We use UMD blockquote syntax (> ... <) which has class="umd-blockquote"
-    let input = "> This is a UMD quote <";
+    let input = "> This is a quote";
     let output = parse(input);
-    assert!(output.contains(r#"<blockquote class="umd-blockquote">"#));
+    assert!(output.contains(r#"<blockquote class="blockquote">"#));
 }
 
 #[test]
 fn test_gfm_alert_note() {
-    // Note: GFM alerts use blockquote syntax which is currently escaped by sanitization
-    // This feature requires preprocessor enhancement to protect blockquote syntax
-    // For now, skip this test
-    // let input = "> [!NOTE]\n> This is an informational note";
-    // let output = parse(input);
-    // assert!(output.contains(r#"<div class="alert alert-info" role="alert">"#));
+    let input = "> [!NOTE]\n> This is an informational note";
+    let output = parse(input);
+    assert!(output.contains(r#"<aside class="umd-note umd-note-note">"#));
+    assert!(output.contains(r#"<p class="umd-note-title">Note</p>"#));
+    assert!(output.contains("This is an informational note"));
 }
 
 #[test]
 fn test_gfm_alert_warning() {
-    // Skipped - see test_gfm_alert_note comment
+    let input = "> [!WARNING]\n> Be careful here";
+    let output = parse(input);
+    assert!(output.contains(r#"<aside class="umd-note umd-note-warning">"#));
+    assert!(output.contains(r#"<p class="umd-note-title">Warning</p>"#));
 }
 
 #[test]
 fn test_gfm_alert_tip() {
-    // Skipped - see test_gfm_alert_note comment
+    let input = "> [!TIP]\n> Here's a helpful tip";
+    let output = parse(input);
+    assert!(output.contains(r#"<aside class="umd-note umd-note-tip">"#));
+    assert!(output.contains(r#"<p class="umd-note-title">Tip</p>"#));
 }
 
 #[test]
@@ -268,14 +271,6 @@ fn test_mixed_bootstrap_features() {
     assert!(output.contains(r#"class="align-middle""#));
     assert!(output.contains("<dl>"));
     assert!(output.contains("<dt>Term</dt>"));
-}
-
-#[test]
-fn test_umd_blockquote_preserves_class() {
-    let input = "> UMD quote <";
-    let output = parse(input);
-    assert!(output.contains(r#"<blockquote class="umd-blockquote">"#));
-    assert!(!output.contains(r#"class="blockquote""#)); // Should NOT get default class
 }
 
 #[test]

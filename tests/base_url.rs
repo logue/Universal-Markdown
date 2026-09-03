@@ -61,12 +61,14 @@ fn test_base_url_preserves_external_urls() {
 
 #[test]
 fn test_base_url_with_single_quotes() {
-    let input = r#"<a href='/docs'>Docs</a>"#;
-    let mut opts = ParserOptions::default();
-    opts.base_url = Some("/app".to_string());
-
-    let result = parse_with_frontmatter_opts(input, &opts);
-    assert!(result.html.contains(r#"href='/app/docs'"#));
+    // apply_base_url_to_links handles single-quoted attributes defensively
+    // (e.g. developer-supplied Icons HTML, or other raw-HTML postprocessing
+    // inputs) — exercised directly here rather than through parse(), since
+    // literal HTML in markdown *source* is correctly neutralized by comrak's
+    // render.unsafe = false and never reaches this rewriter as real HTML.
+    let html = r#"<a href='/docs'>Docs</a>"#;
+    let result = umd::extensions::conflict_resolver::apply_base_url_to_links(html, "/app");
+    assert!(result.contains(r#"href='/app/docs'"#));
 }
 
 #[test]

@@ -4,11 +4,15 @@ use umd::extensions::conflict_resolver::detect_ambiguous_syntax;
 use umd::parse;
 
 #[test]
-fn test_umd_blockquote() {
-    let input = "> This is a UMD-style blockquote <";
+fn test_blockquote() {
+    // Plain CommonMark blockquote — no UMD-specific syntax. An earlier
+    // "> content <" UMD variant existed only as a workaround for a since-fixed
+    // sanitizer bug that broke standard `>` blockquotes; it's gone now that
+    // the real bug is fixed (see sanitizer.rs module docs).
+    let input = "> This is a blockquote";
     let output = parse(input);
-    assert!(output.contains(r#"<blockquote class="umd-blockquote">"#));
-    assert!(output.contains("This is a UMD-style blockquote"));
+    assert!(output.contains(r#"<blockquote class="blockquote">"#));
+    assert!(output.contains("This is a blockquote"));
 }
 
 #[test]
@@ -173,10 +177,10 @@ fn test_colon_block_plugin_does_not_swallow_surrounding_text() {
 
 #[test]
 fn test_multiline_content() {
-    let input = "# Heading\n\n> UMD blockquote <\n\nParagraph\n\nCOLOR(blue): Blue paragraph";
+    let input = "# Heading\n\n> Blockquote\n\nParagraph\n\nCOLOR(blue): Blue paragraph";
     let output = parse(input);
     assert!(output.contains("<h1>"));
-    assert!(output.contains(r#"<blockquote class="umd-blockquote">"#));
+    assert!(output.contains(r#"<blockquote class="blockquote">"#));
     // blue is now a Bootstrap color, so it should output a class
     assert!(output.contains(r#"class="text-blue""#));
 }

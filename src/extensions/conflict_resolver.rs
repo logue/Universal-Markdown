@@ -220,12 +220,6 @@ fn map_color_value_with_options(
 
 // Patterns that need special handling
 
-/// Regex to detect UMD blockquote: > ... <
-static UMD_BLOCKQUOTE: Lazy<Regex> = Lazy::new(|| {
-    // Match single line > content < pattern
-    Regex::new(r"(?m)^>\s*(.+?)\s*<\s*$").unwrap()
-});
-
 /// Regex to detect Markdown-style emphasis that might conflict with UMD
 /// Detects ***text*** which could be confused with '''text'''
 static TRIPLE_STAR_EMPHASIS: Lazy<Regex> =
@@ -297,15 +291,6 @@ pub fn preprocess_conflicts(input: &str) -> (String, HeaderIdMap) {
 
             // Return the heading without the {#id} part
             format!("{} {}", hashes, title)
-        })
-        .to_string();
-
-    // Handle UMD blockquotes: > ... <
-    // Use a safe marker that won't be affected by HTML escaping
-    result = UMD_BLOCKQUOTE
-        .replace_all(&result, |caps: &Captures| {
-            let content = &caps[1];
-            format!("{{{{UMD_BLOCKQUOTE:{}:UMD_BLOCKQUOTE}}}}", content)
         })
         .to_string();
 
@@ -845,19 +830,6 @@ pub fn postprocess_conflicts_with_options(
         })
         .to_string();
 
-    // Restore UMD blockquotes
-    let umd_blockquote_marker = Regex::new(r"\{\{UMD_BLOCKQUOTE:(.+?):UMD_BLOCKQUOTE\}\}").unwrap();
-
-    result = umd_blockquote_marker
-        .replace_all(&result, |caps: &Captures| {
-            let content = &caps[1];
-            format!(
-                "<blockquote class=\"umd-blockquote\">{}</blockquote>",
-                content
-            )
-        })
-        .to_string();
-
     // Restore and apply block decorations
     let block_decoration_marker =
         Regex::new(r"\{\{BLOCK_DECORATION_B64:([A-Za-z0-9+/=]+):BLOCK_DECORATION_B64\}\}").unwrap();
@@ -1217,7 +1189,7 @@ fn apply_tasklist_indeterminate(html: &str) -> String {
 ///
 /// - Add default `table` class to all <table> elements
 /// - Add default `blockquote` class to all <blockquote> elements (except UMD-style)
-/// - Convert GFM alerts ([!NOTE], etc.) to Bootstrap alert components
+/// - Convert GFM-alert-style blockquotes ([!NOTE], etc.) to UMD's own .umd-note-* markup
 /// - Add JUSTIFY support for tables (w-100 class)
 fn apply_bootstrap_enhancements(html: &str, header_map: &HeaderIdMap) -> String {
     let mut result = html.to_string();
@@ -1228,18 +1200,20 @@ fn apply_bootstrap_enhancements(html: &str, header_map: &HeaderIdMap) -> String 
         .replace_all(&result, "<table class=\"table\">")
         .to_string();
 
-    // Add default class to blockquotes (check if it doesn't already have class="umd-blockquote")
+    // Add default class to blockquotes
     let blockquote_pattern = Regex::new(r#"<blockquote>"#).unwrap();
     result = blockquote_pattern
         .replace_all(&result, "<blockquote class=\"blockquote\">")
         .to_string();
 
-    // UMD blockquotes already have class="umd-blockquote", so they remain unchanged
-
-    // Handle GFM alerts: > [!NOTE] etc.
-    // These are rendered as <blockquote class="blockquote"><p>[!NOTE] ...</p></blockquote>
+    // Handle GFM-alert-style blockquotes: > [!NOTE] etc.
+    // These are rendered as <blockquote class="blockquote"><p>[!NOTE] ...</p></blockquote>.
+    // Output is UMD's own .umd-note-* taxonomy, not Bootstrap's .alert-* — a host app
+    // may use Bootstrap's alert component itself, so UMD doesn't borrow its classes.
+    // Keyword aliases (DANGER/SUCCESS/WARN/INFO) are resolved here; the stylesheet only
+    // needs to style the canonical type each alias maps to.
     let gfm_alert_pattern = Regex::new(
-        r#"<blockquote class="blockquote">\s*<p>\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*(.*?)</p>\s*</blockquote>"#
+        r#"<blockquote class="blockquote">\s*<p>\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION|DANGER|MUST|RECOMMEND|DONT|NEVER|SUCCESS|WARN|INFO)\]\s*(.*?)</p>\s*</blockquote>"#
     ).unwrap();
 
     result = gfm_alert_pattern
@@ -1247,18 +1221,22 @@ fn apply_bootstrap_enhancements(html: &str, header_map: &HeaderIdMap) -> String 
             let alert_type = &caps[1];
             let content = &caps[2];
 
-            let (alert_class, icon_text) = match alert_type {
-                "NOTE" => ("alert-info", "Note"),
-                "TIP" => ("alert-success", "Tip"),
-                "IMPORTANT" => ("alert-primary", "Important"),
-                "WARNING" => ("alert-warning", "Warning"),
-                "CAUTION" => ("alert-danger", "Caution"),
-                _ => ("alert-info", "Note"),
+            let (note_type, label) = match alert_type {
+                "NOTE" | "SUCCESS" => ("note", "Note"),
+                "TIP" | "INFO" => ("tip", "Tip"),
+                "IMPORTANT" => ("important", "Important"),
+                "WARNING" | "WARN" => ("warning", "Warning"),
+                "CAUTION" | "DANGER" => ("caution", "Caution"),
+                "MUST" => ("must", "Must"),
+                "RECOMMEND" => ("recommend", "Recommend"),
+                "DONT" => ("dont", "Don't"),
+                "NEVER" => ("never", "Never"),
+                _ => ("note", "Note"),
             };
 
             format!(
-                "<div class=\"alert {}\" role=\"alert\"><strong>{}:</strong> {}</div>",
-                alert_class, icon_text, content
+                "<aside class=\"umd-note umd-note-{}\"><p class=\"umd-note-title\">{}</p><p>{}</p></aside>",
+                note_type, label, content
             )
         })
         .to_string();
@@ -1385,36 +1363,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_umd_blockquote_preprocessing() {
-        let input = "> This is a UMD quote <";
-        let (output, _) = preprocess_conflicts(input);
-        assert!(output.contains("{{UMD_BLOCKQUOTE:"));
-        assert!(!output.starts_with(">"));
-    }
-
-    #[test]
-    fn test_umd_blockquote_postprocessing() {
-        let header_map = HeaderIdMap::new();
-        let input = "{{UMD_BLOCKQUOTE:Test content:UMD_BLOCKQUOTE}}";
-        let output = postprocess_conflicts(input, &header_map);
-        assert!(output.contains("<blockquote class=\"umd-blockquote\">Test content</blockquote>"));
-    }
-
-    #[test]
     fn test_markdown_blockquote_unchanged() {
         let input = "> Standard Markdown quote\n> Second line";
         let (output, _) = preprocess_conflicts(input);
         // Should NOT be converted (no closing <)
         assert_eq!(output, input);
-    }
-
-    #[test]
-    fn test_roundtrip_blockquote() {
-        let header_map = HeaderIdMap::new();
-        let input = "> UMD style <";
-        let (preprocessed, _) = preprocess_conflicts(input);
-        let postprocessed = postprocess_conflicts(&preprocessed, &header_map);
-        assert!(postprocessed.contains("<blockquote class=\"umd-blockquote\">"));
     }
 
     #[test]
@@ -1504,8 +1457,8 @@ mod tests {
         let header_map = HeaderIdMap::new();
         let input = r#"<blockquote class="blockquote"><p>[!NOTE] This is a note</p></blockquote>"#;
         let output = postprocess_conflicts(input, &header_map);
-        assert!(output.contains(r#"<div class="alert alert-info" role="alert">"#));
-        assert!(output.contains("<strong>Note:</strong>"));
+        assert!(output.contains(r#"<aside class="umd-note umd-note-note">"#));
+        assert!(output.contains(r#"<p class="umd-note-title">Note</p>"#));
         assert!(output.contains("This is a note"));
     }
 
@@ -1514,17 +1467,63 @@ mod tests {
         let header_map = HeaderIdMap::new();
         let input = r#"<blockquote class="blockquote"><p>[!WARNING] Be careful</p></blockquote>"#;
         let output = postprocess_conflicts(input, &header_map);
-        assert!(output.contains(r#"<div class="alert alert-warning" role="alert">"#));
-        assert!(output.contains("<strong>Warning:</strong>"));
+        assert!(output.contains(r#"<aside class="umd-note umd-note-warning">"#));
+        assert!(output.contains(r#"<p class="umd-note-title">Warning</p>"#));
     }
 
     #[test]
-    fn test_umd_blockquote_no_bootstrap_class() {
+    fn test_gfm_alert_extended_types() {
         let header_map = HeaderIdMap::new();
-        let input = "{{UMD_BLOCKQUOTE:Test content:UMD_BLOCKQUOTE}}";
-        let output = postprocess_conflicts(input, &header_map);
-        assert!(output.contains(r#"<blockquote class="umd-blockquote">"#));
-        assert!(!output.contains(r#"class="blockquote""#));
+        for (input_type, expected_class, expected_label) in [
+            ("MUST", "umd-note-must", "Must"),
+            ("RECOMMEND", "umd-note-recommend", "Recommend"),
+            ("DONT", "umd-note-dont", "Don't"),
+            ("NEVER", "umd-note-never", "Never"),
+        ] {
+            let input = format!(
+                r#"<blockquote class="blockquote"><p>[!{}] Body</p></blockquote>"#,
+                input_type
+            );
+            let output = postprocess_conflicts(&input, &header_map);
+            assert!(
+                output.contains(&format!("umd-note {}", expected_class)),
+                "expected class {} in output for [!{}]: {}",
+                expected_class,
+                input_type,
+                output
+            );
+            assert!(
+                output.contains(&format!(r#"<p class="umd-note-title">{}</p>"#, expected_label)),
+                "expected label {} in output for [!{}]: {}",
+                expected_label,
+                input_type,
+                output
+            );
+        }
+    }
+
+    #[test]
+    fn test_gfm_alert_aliases_map_to_canonical_type() {
+        let header_map = HeaderIdMap::new();
+        for (alias, canonical_class) in [
+            ("DANGER", "umd-note-caution"),
+            ("SUCCESS", "umd-note-note"),
+            ("WARN", "umd-note-warning"),
+            ("INFO", "umd-note-tip"),
+        ] {
+            let input = format!(
+                r#"<blockquote class="blockquote"><p>[!{}] Body</p></blockquote>"#,
+                alias
+            );
+            let output = postprocess_conflicts(&input, &header_map);
+            assert!(
+                output.contains(&format!("umd-note {}", canonical_class)),
+                "expected alias [!{}] to map to {}: {}",
+                alias,
+                canonical_class,
+                output
+            );
+        }
     }
 
     #[test]
