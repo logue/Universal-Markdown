@@ -11,7 +11,7 @@ fn test_blockquote() {
     // the real bug is fixed (see sanitizer.rs module docs).
     let input = "> This is a blockquote";
     let output = parse(input);
-    assert!(output.contains(r#"<blockquote class="blockquote">"#));
+    assert!(output.contains(r#"<blockquote class="umd-blockquote">"#));
     assert!(output.contains("This is a blockquote"));
 }
 
@@ -62,7 +62,7 @@ fn test_color_decoration() {
     let input = "COLOR(red): Red text";
     let output = parse(input);
     // red is now a Bootstrap color name, so it should output a class
-    assert!(output.contains(r#"class="text-red""#));
+    assert!(output.contains(r#"class="umd-color-red""#));
 }
 
 #[test]
@@ -180,7 +180,7 @@ fn test_multiline_content() {
     let input = "# Heading\n\n> Blockquote\n\nParagraph\n\nCOLOR(blue): Blue paragraph";
     let output = parse(input);
     assert!(output.contains("<h1>"));
-    assert!(output.contains(r#"<blockquote class="blockquote">"#));
-    // blue is now a Bootstrap color, so it should output a class
-    assert!(output.contains(r#"class="text-blue""#));
+    assert!(output.contains(r#"<blockquote class="umd-blockquote">"#));
+    // blue is a named palette color, so it should output a class
+    assert!(output.contains(r#"class="umd-color-blue""#));
 }

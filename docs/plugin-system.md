@@ -258,12 +258,20 @@ function parseUmdPlugins(string $html): array
 
 ## 標準プラグイン
 
+ブロック型:
+
 - `@detail(summary[, open])`
   - `<details><summary>...</summary>...</details>`
 - `@clear()`
   - `<div class="clearfix"></div>`
 - `@table(...)`
   - テーブルへの Bootstrap バリエーション適用（詳細は [table-features.md](table-features.md)）
+- `@math(...)` / `@popover(...)`
+  - [umd-extensions.md](umd-extensions.md) 参照
+
+インライン型（`&color()`, `&size()`, `&ruby()`, `&spoiler()` など）の標準プラグイン一覧は
+[inline-plugins.md](inline-plugins.md) を参照してください。いずれも未知の関数名と異なり、
+汎用の `<template class="umd-plugin-{name}">` を経由せず直接HTMLを出力します。
 
 ## 実装の主担当
 

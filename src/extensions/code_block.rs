@@ -205,7 +205,7 @@ fn render_mermaid_as_svg(mermaid_code: &str) -> Result<String, String> {
     #[cfg(not(target_arch = "wasm32"))]
     {
         mermaid_rs_renderer::render(mermaid_code)
-            .map(|svg| inject_bootstrap_colors(&svg))
+            .map(|svg| inject_umd_color_variables(&svg))
             .map_err(|error| error.to_string())
     }
 
@@ -249,18 +249,24 @@ fn highlight_code_with_syntect(language: &str, source: &str) -> Option<String> {
     }
 }
 
-/// Inject Bootstrap CSS variables for diagram coloring
+/// Inject umd-core CSS variables for diagram coloring
 ///
-/// Replaces hardcoded colors with Bootstrap color variables (--bs-blue, --bs-green, etc.)
-/// instead of system theme variables. White and black are excluded as they represent
-/// structural elements rather than semantic colors.
-fn inject_bootstrap_colors(svg: &str) -> String {
-    svg.replace("#0d6efd", "var(--bs-blue, #0d6efd)")
-        .replace("#6c757d", "var(--bs-gray, #6c757d)")
-        .replace("#198754", "var(--bs-green, #198754)")
-        .replace("#dc3545", "var(--bs-red, #dc3545)")
-        .replace("#ffc107", "var(--bs-yellow, #ffc107)")
-        .replace("#0dcaf0", "var(--bs-cyan, #0dcaf0)")
+/// Replaces hardcoded colors with umd-core color tokens (--umd-color-blue,
+/// --umd-color-green, etc.) instead of system theme variables. White and
+/// black are excluded as they represent structural elements rather than
+/// semantic colors.
+///
+/// `mermaid-rs-renderer` bakes these literal hex values into the SVG itself
+/// (no theme-variable passthrough), so this post-hoc string replacement is
+/// the only way to make the diagram respond to the reference CSS's light/dark
+/// tokens — see PLAN.md for the longer-term fix.
+fn inject_umd_color_variables(svg: &str) -> String {
+    svg.replace("#0d6efd", "var(--umd-color-blue, #0d6efd)")
+        .replace("#6c757d", "var(--umd-color-gray, #6c757d)")
+        .replace("#198754", "var(--umd-color-green, #198754)")
+        .replace("#dc3545", "var(--umd-color-red, #dc3545)")
+        .replace("#ffc107", "var(--umd-color-yellow, #ffc107)")
+        .replace("#0dcaf0", "var(--umd-color-cyan, #0dcaf0)")
     // Note: #ffffff (white) and #000000 (black) are intentionally excluded
     // as they represent structural elements, not semantic colors
 }

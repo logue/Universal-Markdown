@@ -43,7 +43,7 @@ Minimum requirements:
 ### Media & Content
 
 - ✅ **Auto-detect Media Files**: `![alt](url)` intelligently becomes `<video>`, `<audio>`, `<picture>`, or download link based on file extension
-- ✅ **Semantic HTML Elements**: `&badge()`, `&ruby()`, `&sup()`, `&time()`, etc.
+- ✅ **Semantic HTML Elements**: `&ruby()`, `&sup()`, `&time()`, etc.
 - ✅ **Definition Lists**: `:term|definition` syntax with block-level support
 - ✅ **Code Blocks with Bootstrap Integration**: Class-based language output (`<code class="language-*">`) and syntect highlighting
 - ✅ **Mermaid SSR**: ` ```mermaid ` blocks are rendered server-side as `<figure class="code-block code-block-mermaid mermaid-diagram">...<svg>...</svg></figure>`
@@ -78,7 +78,7 @@ Minimum requirements:
 - ✅ **Allowed Blank Characters**: Only half-width space (`U+0020`) and full-width space (`U+3000`) are preserved
 - ✅ **Safe Link Handling**: `<URL>` explicit markup only (bare URLs not auto-linked)
 - ✅ **IDN Visual Warning**: External `http/https` links with non-ASCII or punycode hosts get a warning marker (`class="umd-idn-warning-link"`, `data-idn-warning="true"`) and an inline warning icon
-- ✅ **Inline Nesting Depth Limit**: Inline decoration functions (`&color()`, `&badge()`, `&ruby()`, etc.) are limited in nesting depth (default: 5). Over-limit blocks are not expanded and are wrapped in `<span class="umd-error-deep-recursive">` for visual identification. Plugin names (`&fn()`) are **not** counted toward the limit.
+- ✅ **Inline Nesting Depth Limit**: Inline decoration functions (`&color()`, `&size()`, `&ruby()`, etc.) are limited in nesting depth (default: 5). Over-limit blocks are not expanded and are wrapped in `<span class="umd-error-deep-recursive">` for visual identification. Plugin names (`&fn()`) are **not** counted toward the limit.
 
 Example CSS (minimal):
 
@@ -314,16 +314,19 @@ exactly like `colorSwatch` above.
 ### Block Decorations
 
 ```markdown
-COLOR(red): Error message → <p class="text-danger">Error message</p>
-SIZE(1.5): Larger text → <p class="fs-4">Larger text</p>
-RIGHT: Right-aligned content → <p class="text-end">Right-aligned content</p>
-CENTER: Centered paragraph → <p class="text-center">Centered paragraph</p>
+COLOR(red): Error message → <p class="umd-color-red">Error message</p>
+SIZE(lg): Larger text → <p class="umd-text-size-lg">Larger text</p>
+RIGHT: Right-aligned content → <p class="umd-end">Right-aligned content</p>
+CENTER: Centered paragraph → <p class="umd-center">Centered paragraph</p>
 ```
+
+`SIZE()` only accepts the keyword sizes `xs`/`sm`/`lg`/`xl` by default; enable
+`ParserOptions.allow_custom_font_size` to also allow arbitrary rem/px values
+(rendered as an inline style instead of a class).
 
 ### Inline Semantic Elements
 
 ```markdown
-&badge(success){Active}; → <span class="badge bg-success">Active</span>
 &ruby(reading){漢字}; → <ruby>漢字<rp>(</rp><rt>reading</rt><rp>)</rp></ruby>
 &sup(superscript); → <sup>superscript</sup>
 &time(2026-02-25){Today}; → <time datetime="2026-02-25">Today</time>

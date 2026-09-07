@@ -121,6 +121,7 @@ struct WasmParseOptions {
     base_url: Option<String>,
     allow_fragment_extension_hint: Option<bool>,
     allow_hex_colors: Option<bool>,
+    allow_custom_font_size: Option<bool>,
     icons: Option<WasmIconsOptions>,
 }
 
@@ -151,6 +152,9 @@ fn parse_with_options_json(input: &str, options_json: Option<&str>) -> String {
                 }
                 if let Some(value) = raw.allow_hex_colors {
                     options.allow_hex_colors = value;
+                }
+                if let Some(value) = raw.allow_custom_font_size {
+                    options.allow_custom_font_size = value;
                 }
                 if let Some(icons) = raw.icons {
                     if let Some(value) = icons.video {
@@ -349,6 +353,10 @@ fn extract_footnotes(html: &str) -> (String, Option<String>) {
 /// - `baseUrl`: string
 /// - `allowFragmentExtensionHint`: boolean
 /// - `allowHexColors`: boolean
+/// - `allowCustomFontSize`: boolean — when false (default), `SIZE()`/`&size()`
+///   only accept the keyword sizes `xs`/`sm`/`lg`/`xl` (mapped to the
+///   `umd-text-size-*` classes); when true, arbitrary rem/px/unitless values
+///   are also accepted and rendered as an inline `font-size` style.
 /// - `icons`: object with `video`, `audio`, `download`, `colorSwatch`, `note`,
 ///   `tip`, `important`, `warning`, `caution`, `must`, `recommend`, `dont`,
 ///   `never`, `example`. Defaults render via the Iconify

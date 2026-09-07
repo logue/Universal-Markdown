@@ -1,10 +1,14 @@
-//! Block decoration syntax for LukiWiki with Bootstrap 5 class support
+//! Block decoration syntax for LukiWiki with `umd-*` reference-CSS class support
 //!
 //! Provides line-prefix decorations with compound syntax support:
-//! - COLOR(fg,bg): Bootstrap color classes or inherit
-//! - SIZE(value): Bootstrap fs-* classes or inline rem
-//! - TRUNCATE: Bootstrap text-truncate class
-//! - JUSTIFY/RIGHT/CENTER/LEFT: Bootstrap text alignment classes
+//! - COLOR(fg,bg): `umd-color-*`/`umd-bg-*` classes or inline color
+//! - SIZE(value): inline `font-size` (rem)
+//! - TRUNCATE: `umd-truncate` class
+//! - JUSTIFY/RIGHT/CENTER/LEFT: `umd-*` text alignment classes
+//!
+//! Table cell vertical alignment (TOP/MIDDLE/BOTTOM/BASELINE) and the
+//! table/plugin block-placement wrapper (`apply_block_placement`) still emit
+//! Bootstrap classes — out of scope for this pass, tracked in PLAN.md.
 //!
 //! Multiple prefixes can be combined:
 //! - SIZE(1.5): COLOR(primary): CENTER: Text
@@ -42,7 +46,7 @@ impl BlockDecoration {
 
         // Truncate
         if self.truncate {
-            classes.push("text-truncate".to_string());
+            classes.push("umd-truncate".to_string());
         }
 
         // Vertical alignment
@@ -52,7 +56,7 @@ impl BlockDecoration {
 
         // Font size (class or inline)
         if let Some(ref size) = self.font_size {
-            if size.starts_with("fs-") {
+            if size.starts_with("umd-text-size-") {
                 classes.push(size.clone());
             } else {
                 styles.push(format!("font-size: {}", size));
@@ -61,7 +65,7 @@ impl BlockDecoration {
 
         // Foreground color (class or inline)
         if let Some(ref fg) = self.fg_color {
-            if fg.starts_with("text-") {
+            if fg.starts_with("umd-color-") {
                 classes.push(fg.clone());
             } else {
                 styles.push(format!("color: {}", fg));
@@ -70,7 +74,7 @@ impl BlockDecoration {
 
         // Background color (class or inline)
         if let Some(ref bg) = self.bg_color {
-            if bg.starts_with("bg-") {
+            if bg.starts_with("umd-bg-") {
                 classes.push(bg.clone());
             } else {
                 styles.push(format!("background-color: {}", bg));
@@ -120,26 +124,31 @@ static BLOCK_PLACEMENT: Lazy<Regex> = Lazy::new(|| {
     .unwrap()
 });
 
-/// Map font size value to Bootstrap class or inline style
-fn map_font_size(value: &str) -> String {
-    // Check if value has unit (rem, em, px, etc.)
-    if value.contains("rem") || value.contains("em") || value.contains("px") {
-        return value.to_string(); // Return as inline style
+/// Map a `SIZE()` value to a `umd-text-size-*` class, or (only when
+/// `allow_custom_font_size` is enabled) an arbitrary inline `font-size`.
+///
+/// By default only the keyword sizes `xs`/`sm`/`lg`/`xl` are accepted —
+/// there's no discrete class for arbitrary numeric values, and allowing
+/// unbounded custom sizes is opt-in to prevent abuse in untrusted content.
+fn map_font_size(value: &str, allow_custom_font_size: bool) -> Option<String> {
+    let trimmed = value.trim();
+
+    if matches!(trimmed, "xs" | "sm" | "lg" | "xl") {
+        return Some(format!("umd-text-size-{}", trimmed));
     }
 
-    // Map to Bootstrap fs-* classes (unitless values)
-    match value {
-        "2.5" => "fs-1".to_string(),       // 2.5rem
-        "2" | "2.0" => "fs-2".to_string(), // 2rem
-        "1.75" => "fs-3".to_string(),      // 1.75rem
-        "1.5" => "fs-4".to_string(),       // 1.5rem
-        "1.25" => "fs-5".to_string(),      // 1.25rem
-        "0.875" => "fs-6".to_string(),     // 0.875rem
-        _ => format!("{}rem", value),      // Custom value as inline style
+    if !allow_custom_font_size {
+        return None;
+    }
+
+    if trimmed.contains("rem") || trimmed.contains("em") || trimmed.contains("px") {
+        Some(trimmed.to_string())
+    } else {
+        Some(format!("{}rem", trimmed))
     }
 }
 
-/// Map color value to Bootstrap class or inline style
+/// Map color value to a `umd-color-*`/`umd-bg-*` class or inline style
 fn map_color(value: &str, is_background: bool) -> Option<String> {
     map_color_with_options(value, is_background, false)
 }
@@ -155,11 +164,12 @@ fn map_color_with_options(
     }
 
     let colors = [
-        "blue", "indigo", "purple", "pink", "red", "orange", "yellow", "green", "teal", "cyan",
+        "blue", "indigo", "violet", "purple", "pink", "red", "orange", "amber", "yellow", "lime",
+        "green", "teal", "cyan", "brown", "gray", "pewter",
     ];
     for color in colors {
         if trimmed == color {
-            let prefix = if is_background { "bg" } else { "text" };
+            let prefix = if is_background { "umd-bg" } else { "umd-color" };
             return Some(format!("{}-{}", prefix, trimmed));
         }
     }
@@ -175,14 +185,14 @@ fn map_color_with_options(
     None
 }
 
-/// Map alignment to Bootstrap class
+/// Map alignment to a `umd-*` text-align class
 fn map_text_align(value: &str) -> String {
     match value.to_uppercase().as_str() {
-        "RIGHT" => "text-end".to_string(),
-        "CENTER" => "text-center".to_string(),
-        "LEFT" => "text-start".to_string(),
-        "JUSTIFY" => "text-justify".to_string(),
-        _ => "text-start".to_string(),
+        "RIGHT" => "umd-end".to_string(),
+        "CENTER" => "umd-center".to_string(),
+        "LEFT" => "umd-start".to_string(),
+        "JUSTIFY" => "umd-justify".to_string(),
+        _ => "umd-start".to_string(),
     }
 }
 
@@ -198,14 +208,18 @@ fn map_vertical_align(value: &str) -> String {
 }
 
 /// Parse all prefixes from a line and extract decoration attributes
-fn parse_prefixes_with_options(line: &str, allow_hex_colors: bool) -> (BlockDecoration, String) {
+fn parse_prefixes_with_options(
+    line: &str,
+    allow_hex_colors: bool,
+    allow_custom_font_size: bool,
+) -> (BlockDecoration, String) {
     let mut decoration = BlockDecoration::default();
     let mut remaining = line;
 
     // Extract SIZE
     if let Some(caps) = SIZE_EXTRACT.captures(remaining) {
         let value = caps.get(1).map_or("", |m| m.as_str());
-        decoration.font_size = Some(map_font_size(value));
+        decoration.font_size = map_font_size(value, allow_custom_font_size);
         remaining = &remaining[caps.get(0).unwrap().end()..];
     }
 
@@ -250,12 +264,13 @@ fn parse_prefixes_with_options(line: &str, allow_hex_colors: bool) -> (BlockDeco
 }
 
 fn parse_prefixes(line: &str) -> (BlockDecoration, String) {
-    parse_prefixes_with_options(line, false)
+    parse_prefixes_with_options(line, false, false)
 }
 
 pub fn apply_block_decorations_with_options(
     html: &str,
     allow_hex_colors: bool,
+    allow_custom_font_size: bool,
 ) -> String {
     let mut result = String::new();
 
@@ -272,7 +287,8 @@ pub fn apply_block_decorations_with_options(
             || line.starts_with("CENTER:")
             || line.starts_with("LEFT:")
         {
-            let (decoration, content) = parse_prefixes_with_options(line, allow_hex_colors);
+            let (decoration, content) =
+                parse_prefixes_with_options(line, allow_hex_colors, allow_custom_font_size);
             let (class_attr, style_attr) = decoration.to_html_attrs();
 
             let mut attrs = Vec::new();
@@ -298,7 +314,7 @@ pub fn apply_block_decorations_with_options(
 }
 
 pub fn apply_block_decorations(html: &str) -> String {
-    apply_block_decorations_with_options(html, false)
+    apply_block_decorations_with_options(html, false, false)
 }
 
 /// Apply block placement prefixes to tables and block plugins
@@ -360,10 +376,10 @@ pub fn apply_block_placement(html: &str) -> String {
             let media = &caps[2];
 
             let wrapper_class = match placement {
-                "LEFT" => "ms-0 me-auto",
-                "CENTER" => "mx-auto",
-                "RIGHT" => "ms-auto me-0",
-                "JUSTIFY" => "w-100",
+                "LEFT" => "umd-block-start",
+                "CENTER" => "umd-inline-center",
+                "RIGHT" => "umd-block-end",
+                "JUSTIFY" => "umd-block-justify",
                 _ => "",
             };
 
@@ -455,29 +471,37 @@ mod tests {
     #[test]
     fn test_color_bootstrap_class() {
         let input = "COLOR(blue): Blue text";
-        let output = apply_block_decorations_with_options(input, false);
-        assert!(output.contains("class=\"text-blue\""));
+        let output = apply_block_decorations_with_options(input, false, false);
+        assert!(output.contains("class=\"umd-color-blue\""));
         assert!(output.contains("Blue text"));
     }
 
     #[test]
     fn test_color_custom_value() {
         let input = "COLOR(#FF0000): Custom red";
-        let output = apply_block_decorations_with_options(input, true);
+        let output = apply_block_decorations_with_options(input, true, false);
         assert!(output.contains("style=\"color: #FF0000\""));
     }
 
     #[test]
-    fn test_size_bootstrap_class() {
-        let input = "SIZE(1.5): Medium text";
+    fn test_size_keyword_class() {
+        let input = "SIZE(lg): Large text";
         let output = apply_block_decorations(input);
-        assert!(output.contains("class=\"fs-4\""));
+        assert!(output.contains("class=\"umd-text-size-lg\""));
     }
 
     #[test]
-    fn test_size_custom_value() {
-        let input = "SIZE(3rem): Custom size";
+    fn test_size_custom_value_rejected_by_default() {
+        let input = "SIZE(1.5): Medium text";
         let output = apply_block_decorations(input);
+        assert!(!output.contains("font-size"));
+        assert!(output.contains("Medium text"));
+    }
+
+    #[test]
+    fn test_size_custom_value_allowed_when_enabled() {
+        let input = "SIZE(3rem): Custom size";
+        let output = apply_block_decorations_with_options(input, false, true);
         assert!(output.contains("style=\"font-size: 3rem\""));
     }
 
@@ -485,23 +509,23 @@ mod tests {
     fn test_text_align() {
         let input = "CENTER: Centered text";
         let output = apply_block_decorations(input);
-        assert!(output.contains("class=\"text-center\""));
+        assert!(output.contains("class=\"umd-center\""));
     }
 
     #[test]
     fn test_truncate() {
         let input = "TRUNCATE: Long text that will be truncated";
         let output = apply_block_decorations(input);
-        assert!(output.contains("class=\"text-truncate\""));
+        assert!(output.contains("class=\"umd-truncate\""));
     }
 
     #[test]
     fn test_compound_decorations() {
-        let input = "SIZE(1.5): COLOR(blue): CENTER: Styled text";
-        let output = apply_block_decorations_with_options(input, false);
-        assert!(output.contains("fs-4"));
-        assert!(output.contains("text-blue"));
-        assert!(output.contains("text-center"));
+        let input = "SIZE(lg): COLOR(blue): CENTER: Styled text";
+        let output = apply_block_decorations_with_options(input, false, false);
+        assert!(output.contains("umd-text-size-lg"));
+        assert!(output.contains("umd-color-blue"));
+        assert!(output.contains("umd-center"));
         assert!(output.contains("Styled text"));
     }
 
@@ -516,8 +540,8 @@ mod tests {
     fn test_compound_with_truncate() {
         let input = "TRUNCATE: RIGHT: Truncated right text";
         let output = apply_block_decorations(input);
-        assert!(output.contains("text-truncate"));
-        assert!(output.contains("text-end"));
+        assert!(output.contains("umd-truncate"));
+        assert!(output.contains("umd-end"));
     }
 
     #[test]
@@ -564,7 +588,7 @@ mod tests {
   <img src="image.png" alt="alt" title="Title" />
 </picture></p>"#;
         let output = apply_block_placement(input);
-        assert!(output.contains(r#"<figure class="ms-auto me-0">"#));
+        assert!(output.contains(r#"<figure class="umd-block-end">"#));
         assert!(output.contains("<picture>"));
         assert!(!output.contains("RIGHT:"));
     }

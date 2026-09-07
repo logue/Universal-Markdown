@@ -16,7 +16,7 @@ fn test_bootstrap_table_default_class() {
 fn test_bootstrap_blockquote_default_class() {
     let input = "> This is a quote";
     let output = parse(input);
-    assert!(output.contains(r#"<blockquote class="blockquote">"#));
+    assert!(output.contains(r#"<blockquote class="umd-blockquote">"#));
 }
 
 #[test]
@@ -57,24 +57,10 @@ fn test_gfm_alert_tip() {
 }
 
 #[test]
-fn test_badge_basic() {
-    let input = "Check this &badge(blue){New};";
-    let output = parse(input);
-    assert!(output.contains(r#"<span class="badge bg-blue">New</span>"#));
-}
-
-#[test]
-fn test_badge_with_link() {
-    let input = "&badge(red){[Error](/error)};";
-    let output = parse(input);
-    assert!(output.contains(r#"<a href="/error" class="badge bg-red">Error</a>"#));
-}
-
-#[test]
 fn test_color_bootstrap_class() {
     let input = "&color(blue){Blue text};";
     let output = parse(input);
-    assert!(output.contains(r#"class="text-blue""#));
+    assert!(output.contains(r#"class="umd-color-blue""#));
 }
 
 #[test]
@@ -94,9 +80,12 @@ fn test_color_custom_bootstrap_colors() {
     // Test custom Bootstrap colors (blue, yellow, teal, etc.)
     // Should now use Bootstrap classes like text-blue, text-yellow, etc.
     let test_cases = vec![
-        ("&color(blue){Blue text};", r#"class="text-blue""#),
-        ("&color(yellow){Yellow text};", r#"class="text-yellow""#),
-        ("&color(teal){Teal text};", r#"class="text-teal""#),
+        ("&color(blue){Blue text};", r#"class="umd-color-blue""#),
+        (
+            "&color(yellow){Yellow text};",
+            r#"class="umd-color-yellow""#,
+        ),
+        ("&color(teal){Teal text};", r#"class="umd-color-teal""#),
     ];
 
     for (input, expected) in test_cases {
@@ -114,9 +103,9 @@ fn test_color_custom_bootstrap_colors() {
 fn test_block_color_custom_bootstrap_colors() {
     // Test block-level custom colors
     let test_cases = vec![
-        ("COLOR(blue): Blue block", "text-blue"),
-        ("COLOR(yellow): Yellow block", "text-yellow"),
-        ("COLOR(teal): Teal block", "text-teal"),
+        ("COLOR(blue): Blue block", "umd-color-blue"),
+        ("COLOR(yellow): Yellow block", "umd-color-yellow"),
+        ("COLOR(teal): Teal block", "umd-color-teal"),
     ];
 
     for (input, expected_class) in test_cases {
@@ -135,53 +124,58 @@ fn test_color_background_custom_colors() {
     // Test background colors with Bootstrap custom colors
     let input = "&color(,blue){Text on blue background};";
     let output = parse(input);
-    assert!(output.contains(r#"class="bg-blue""#));
+    assert!(output.contains(r#"class="umd-bg-blue""#));
 
     let input = "&color(cyan,yellow){Cyan text on yellow};";
     let output = parse(input);
-    assert!(output.contains(r#"class="text-cyan bg-yellow""#));
+    assert!(output.contains(r#"class="umd-color-cyan umd-bg-yellow""#));
 }
 
 #[test]
-fn test_size_bootstrap_class() {
-    let input = "&size(1.5){Medium text};";
+fn test_size_keyword_class() {
+    let input = "&size(lg){Medium text};";
     let output = parse(input);
-    assert!(output.contains(r#"class="fs-4""#));
+    assert!(output.contains(r#"class="umd-text-size-lg""#));
 }
 
 #[test]
-fn test_size_custom_value() {
+fn test_size_custom_value_rejected_by_default() {
     let input = "&size(3rem){Large text};";
     let output = parse(input);
-    assert!(output.contains(r#"style="font-size: 3rem""#));
+    assert_eq!(output, "<p>Large text</p>");
+
+    let mut options = umd::parser::ParserOptions::default();
+    options.allow_custom_font_size = true;
+    let enabled = umd::parse_with_frontmatter_opts(input, &options).html;
+    assert!(enabled.contains(r#"style="font-size: 3rem""#));
 }
 
 #[test]
 fn test_block_color_bootstrap() {
     let input = "COLOR(green): This is a green message";
     let output = parse(input);
-    assert!(output.contains(r#"class="text-green""#));
+    assert!(output.contains(r#"class="umd-color-green""#));
 }
 
 #[test]
 fn test_block_size_bootstrap() {
-    let input = "SIZE(2): Large heading text";
+    let input = "SIZE(xl): Large heading text";
     let output = parse(input);
-    assert!(output.contains(r#"class="fs-2""#));
+    assert!(output.contains(r#"class="umd-text-size-xl""#));
 }
 
 #[test]
 fn test_block_alignment() {
     let input = "CENTER: Centered text";
     let output = parse(input);
-    assert!(output.contains(r#"class="text-center""#));
+    assert!(output.contains(r#"class="umd-center""#));
 }
 
 #[test]
 fn test_block_justify_alignment() {
     let input = "JUSTIFY: この文章は両端揃えです";
     let output = parse(input);
-    assert!(output.contains(r#"class="text-justify""#));
+    assert!(output.contains(r#"class="umd-justify""#));
     assert!(output.contains("この文章は両端揃えです"));
 }
 
@@ -189,7 +183,7 @@ fn test_block_justify_alignment() {
 fn test_block_truncate() {
     let input = "TRUNCATE: 長いテキストは省略表示されます";
     let output = parse(input);
-    assert!(output.contains(r#"class="text-truncate""#));
+    assert!(output.contains(r#"class="umd-truncate""#));
     assert!(output.contains("長いテキストは省略表示されます"));
 }
 
@@ -215,13 +209,13 @@ fn test_block_placement_center_for_block_plugin() {
 
 #[test]
 fn test_compound_prefixes() {
-    let input = "SIZE(1.5): COLOR(blue): CENTER: Styled text";
+    let input = "SIZE(lg): COLOR(blue): CENTER: Styled text";
     let output = parse(input);
     // Order may vary
     assert!(output.contains(r#"class="#));
-    assert!(output.contains("fs-4"));
-    assert!(output.contains("text-blue"));
-    assert!(output.contains("text-center"));
+    assert!(output.contains("umd-text-size-lg"));
+    assert!(output.contains("umd-color-blue"));
+    assert!(output.contains("umd-center"));
 }
 
 #[test]
@@ -265,7 +259,7 @@ fn test_mixed_bootstrap_features() {
     let input = r#"
 # Heading
 
-&badge(cyan){New}; This is &color(blue){important}; text.
+This is &color(blue){important}; text.
 
 | TOP: Header | MIDDLE: Data |
 |-------------|--------------|
@@ -276,8 +270,7 @@ fn test_mixed_bootstrap_features() {
     let output = parse(input);
 
     // Check all features are present
-    assert!(output.contains(r#"class="badge bg-cyan""#));
-    assert!(output.contains(r#"class="text-blue""#));
+    assert!(output.contains(r#"class="umd-color-blue""#));
     // UMD table syntax (because of TOP: and MIDDLE: prefixes)
     assert!(output.contains(r#"class="table umd-table""#));
     assert!(output.contains(r#"class="align-top""#));
@@ -298,7 +291,7 @@ fn test_strikethrough_compatibility() {
 fn test_media_line_start_treated_as_block() {
     let input = "![alt](image.png \"Title\")";
     let output = parse(input);
-    assert!(output.contains(r#"<figure class="w-100">"#));
+    assert!(output.contains(r#"<figure class="umd-block-justify">"#));
     assert!(output.contains("<picture"));
     assert!(output.contains("src=\"image.png\""));
 }
@@ -307,7 +300,7 @@ fn test_media_line_start_treated_as_block() {
 fn test_right_prefix_places_media_right() {
     let input = "RIGHT:\n![alt](image.png \"Title\")";
     let output = parse(input);
-    assert!(output.contains(r#"<figure class="ms-auto me-0">"#));
+    assert!(output.contains(r#"<figure class="umd-block-end">"#));
     assert!(output.contains("<picture"));
     assert!(output.contains("src=\"image.png\""));
     assert!(!output.contains("RIGHT:"));

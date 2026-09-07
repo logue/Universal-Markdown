@@ -142,6 +142,13 @@ pub struct ParserOptions {
     /// trust the source content and need to display RTL code samples or
     /// BiDi-attack demonstrations verbatim.
     pub allow_bidi_in_code_blocks: bool,
+    /// Allow arbitrary rem/px/unitless font sizes in `SIZE()`/`&size()` syntax.
+    ///
+    /// Disabled by default: only the keyword sizes `xs`/`sm`/`lg`/`xl`
+    /// (mapped to the `umd-text-size-*` reference-CSS classes) are accepted,
+    /// to prevent abuse in untrusted/chat contexts. Enable to also accept
+    /// arbitrary values (e.g. `SIZE(3rem)`), rendered as an inline style.
+    pub allow_custom_font_size: bool,
 }
 
 impl Default for ParserOptions {
@@ -156,6 +163,7 @@ impl Default for ParserOptions {
             max_inline_nesting: Some(5),
             icons: Icons::default(),
             allow_bidi_in_code_blocks: false,
+            allow_custom_font_size: false,
         }
     }
 }

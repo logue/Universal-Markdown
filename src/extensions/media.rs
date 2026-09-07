@@ -335,7 +335,7 @@ fn generate_media_html_with_hint(
                 .map(|t| format!(" title=\"{}\"", escape_html(t)))
                 .unwrap_or_default();
             format!(
-                "<picture{}>\n  <source srcset=\"{}\" type=\"{}\"{} />\n  <img src=\"{}\" alt=\"{}\" loading=\"lazy\" class=\"img-fluid\"{} />\n</picture>",
+                "<picture{}>\n  <source srcset=\"{}\" type=\"{}\"{} />\n  <img src=\"{}\" alt=\"{}\" loading=\"lazy\"{} />\n</picture>",
                 format!("{}{}", title_attr, media_attributes.size_attributes()),
                 escape_html(url),
                 mime_type,
@@ -435,7 +435,7 @@ pub fn transform_images_to_media(
                     .map(|t| format!(" title=\"{}\"", escape_html(t)))
                     .unwrap_or_default();
                 format!(
-                    "<picture{}>\n  <img src=\"{}\" alt=\"{}\" loading=\"lazy\" class=\"img-fluid\"{} />\n</picture>",
+                    "<picture{}>\n  <img src=\"{}\" alt=\"{}\" loading=\"lazy\"{} />\n</picture>",
                     format!("{}{}", title_attr, media_attributes.size_attributes()),
                     escape_html(url),
                     escape_html(alt),
@@ -455,7 +455,10 @@ pub fn transform_images_to_media(
 
     media_only_paragraph
         .replace_all(&transformed, |caps: &regex::Captures| {
-            format!("<figure class=\"w-100\">\n{}\n</figure>", &caps[1])
+            format!(
+                "<figure class=\"umd-block-justify\">\n{}\n</figure>",
+                &caps[1]
+            )
         })
         .to_string()
 }
@@ -803,7 +806,7 @@ mod tests {
     fn test_transform_media_paragraph_to_figure() {
         let html = r#"<p><img src="image.png" alt="alt" title="Title" /></p>"#;
         let transformed = transform_images_to_media(html, &crate::parser::Icons::default(), false);
-        assert!(transformed.contains(r#"<figure class="w-100">"#));
+        assert!(transformed.contains(r#"<figure class="umd-block-justify">"#));
         assert!(transformed.contains("<picture"));
         assert!(transformed.contains("src=\"image.png\""));
     }

@@ -15,6 +15,13 @@
   text-align: justify;
 }
 
+/* Single-line truncation with ellipsis. Syntax: TRUNCATE: text */
+.umd-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Block (vertical) alignment — no CSS logical equivalent exists;
    V-START/V-END/V-CENTER is UMD's own naming convention */
 .umd-v-start {

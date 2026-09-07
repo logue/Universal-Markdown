@@ -188,7 +188,7 @@ Output HTML + Frontmatter + Footnotes
 
 #### src/extensions/inline_decorations.rs
 
-- インライン装飾関数: `&color()`, `&badge()`, `&ruby()` 等
+- インライン装飾関数: `&color()`, `&size()`, `&ruby()` 等
 - セマンティックHTML要素の生成
 - 取り消し線: `%%text%%` → `<s>text</s>`
 - ネスト深度制限 (`apply_inline_decorations_with_limit`): 上限を超えたブロックは展開せず `<span class="umd-error-deep-recursive">` でラップ。`&`・`{`・`}` はHTMLエスケープ済み
@@ -427,7 +427,7 @@ umd/
 #### インライン装飾・ブロック装飾
 
 - **インライン**: `src/extensions/inline_decorations.rs`
-  - `&color()`, `&badge()`, `&ruby()` などのセマンティック関数
+  - `&color()`, `&size()`, `&ruby()` などのセマンティック関数
   - 取り消し線 `%%text%%` → `<s>`
   - ネスト深度制限: `max_inline_nesting`（デフォルト5）を超えたブロックは `<span class="umd-error-deep-recursive">` でラップ（プラグイン名はカウント対象外）
 - **ブロック**: `src/extensions/block_decorations.rs`

@@ -20,12 +20,12 @@ fn test_semantic_html_integration() {
         html
     );
 
-    // Test existing color (red is a Bootstrap custom color, so should use class)
+    // Test existing color (red is a named palette color, so should use class)
     let html = parse("&color(red){text};");
     println!("COLOR output: {}", html);
     assert!(
-        html.contains(r#"class="text-red""#),
-        "Expected text-red class, got: {}",
+        html.contains(r#"class="umd-color-red""#),
+        "Expected umd-color-red class, got: {}",
         html
     );
 }

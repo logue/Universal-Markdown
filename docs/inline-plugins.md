@@ -6,19 +6,27 @@
 
 > ここで扱うのは `&...` で始まる明示的なプラグイン構文です。`**hoge**` や `__hoge__` のような Markdown 系のシンタックスシュガーは含めません。
 
+以下に挙げる関数はすべて「標準プラグイン」（ビルトインとして認識され、汎用の
+`<template class="umd-plugin-{name}">` へのフォールバックを経由せず、直接
+セマンティックなHTMLを出力する）です。ブロック型の標準プラグイン
+（`@table` / `@math` / `@popover` / `@clear` / `@detail`。[plugin-system.md](plugin-system.md)参照）
+のインライン版にあたる位置づけで、実装は `src/extensions/conflict_resolver.rs`
+の `convert_standard_inline_plugin_to_html`（および `argsonly`/`noargs` 版）
+に一箇所に集約されています。
+これら以外の未知の関数名は標準プラグインではないため、汎用の
+`<template class="umd-plugin-{name}">` にフォールバックします。
+
 ## 主要な構文
 
 ### 文字装飾・見た目
 
 - `&color(fg,bg){text};`
   - 文字色・背景色を指定するインライン装飾です。
-  - `fg` / `bg` は Bootstrap の色名または HEX 形式を受け付けます。
+  - `fg` / `bg` はUMDの色名（`umd-color-*`/`umd-bg-*`）または HEX 形式（要`allow_hex_colors`）を受け付けます。
 - `&size(value){text};`
   - 文字サイズを指定するインライン装飾です。
-  - Bootstrap の `fs-*` クラスまたはインラインスタイルに変換されます。
-- `&badge(type){text};`
-  - バッジ表示用のインライン装飾です。
-  - Bootstrap の `badge` クラスに変換されます。
+  - 既定では `xs` / `sm` / `lg` / `xl` のキーワードのみ受け付け、`umd-text-size-*` クラスに変換されます。
+  - `ParserOptions.allow_custom_font_size`（既定: `false`）を有効にすると、任意の rem/px/数値もインラインスタイルとして受け付けます（無制限のサイズ指定は信頼できないコンテキストでの乱用を防ぐためオプトインです）。
 
 ### 置換・要素化
 
@@ -34,7 +42,8 @@
   - `<ruby>` で囲み、ルビ表示を行います。
 - `&spoiler(text);`
   - `&spoiler{text};`
-  - `<span class="spoiler">` で囲みます。
+  - `<span class="umd-spoiler" role="button" tabindex="0" aria-expanded="false">` で囲みます。
+  - Discord風の `||text||` も同じ `umd-spoiler` を出力しますが、`&...` 構文ではないためこの文書の一覧には含めていません（クリック時の `aria-expanded` トグル等インタラクションはホスト側アプリの責務です）。
 
 ### セマンティック HTML
 

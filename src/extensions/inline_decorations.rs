@@ -1,8 +1,28 @@
-//! Inline decoration functions for LukiWiki
+//! Second-pass handling for standard inline plugins, plus LukiWiki-style
+//! shorthand (strikethrough, spoiler) that isn't part of the `&function()`
+//! syntax at all.
 //!
-//! Provides inline formatting functions:
+//! The primary place standard inline plugins (`&color()`, `&size()`,
+//! `&ruby()`, `&spoiler()`, etc.) are recognized is
+//! `conflict_resolver::convert_standard_inline_plugin_to_html` and its
+//! `argsonly`/`noargs` siblings, invoked while restoring the markers that
+//! `plugin_markers::protect_inline_plugins` lays down before Markdown
+//! parsing. That marker regex allows one level of `{...}` nesting in a
+//! call's content, so a standard plugin nested inside *another* standard
+//! plugin's content (e.g. `&color(blue){outer &abbr(t){d}; end};`) survives
+//! the first pass as literal, unexpanded text embedded in the outer HTML.
+//! This module's regexes are that second sweep — they run once more, after
+//! the first pass, to catch exactly that leftover case.
+//!
+//! Because both passes must agree on what a given call produces, the
+//! functions here that have real mapping logic (`&color()`'s palette,
+//! `&size()`'s keyword restriction) call back into `conflict_resolver`'s
+//! `map_color_value_with_options` / `map_font_size_value` rather than
+//! re-deriving it — don't reintroduce a local copy.
+//!
+//! Functions handled by this second pass:
 //! - &color(fg,bg){text};
-//! - &size(rem){text};
+//! - &size(xs|sm|lg|xl){text}; (or an arbitrary rem/px value, opt-in only)
 //! - &sup(text); (superscript)
 //! - &sub(text); (subscript)
 //! - &lang(locale){text};
@@ -14,19 +34,17 @@
 //! - &bdi(text); &bdo(dir){text};
 //! - &wbr; (word break opportunity)
 //! - &br; (manual line break)
+//! - &spoiler(text); / &spoiler{text}; → <span class="umd-spoiler">
+//!
+//! Not standard plugins, and always live (not marker-protected, so there's
+//! only ever one pass for these):
 //! - %%text%% → <s>text</s> (strikethrough)
+//! - ||text|| → <span class="umd-spoiler"> (Discord-style spoiler)
 //!
 //! Note: For underline, use Discord-style __text__ syntax instead
 
 use once_cell::sync::Lazy;
 use regex::Regex;
-
-// Badge pattern with optional link support
-static INLINE_BADGE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"&badge\(([^)]+?)\)\{([^}]+?)\};").unwrap());
-
-// Link pattern for detecting [text](url) inside badge content
-static MARKDOWN_LINK: Lazy<Regex> = Lazy::new(|| Regex::new(r"\[([^\]]+)\]\(([^)]+)\)").unwrap());
 
 static INLINE_COLOR: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"&color\(([^,)]*?)(?:,([^)]*?))?\)\{([^}]+?)\};").unwrap());
@@ -76,81 +94,13 @@ static INLINE_BR: Lazy<Regex> = Lazy::new(|| Regex::new(r"&br;").unwrap());
 /// Regex for LukiWiki strikethrough: %%text%% → <s>text</s>
 static LUKIWIKI_STRIKETHROUGH: Lazy<Regex> = Lazy::new(|| Regex::new(r"%%([^%]+)%%").unwrap());
 
-/// Regex for Discord-style spoiler: || text || → <span class="spoiler">text</span>
+/// Regex for Discord-style spoiler: || text || → <span class="umd-spoiler">text</span>
 static DISCORD_SPOILER: Lazy<Regex> = Lazy::new(|| Regex::new(r"\|\|([^|]+)\|\|").unwrap());
 
-/// Regex for UMD spoiler function: &spoiler(text); or &spoiler{text};
+/// Regex for the standard `&spoiler()` plugin, second pass only (see module
+/// docs): &spoiler(text); or &spoiler{text};
 static INLINE_SPOILER: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"&spoiler(?:\(([^)]+?)\)|\{([^}]+?)\});").unwrap());
-
-/// Map font size value to Bootstrap class or inline style
-fn map_font_size(value: &str) -> (bool, String) {
-    // Check if value has unit (rem, em, px, etc.)
-    if value.contains("rem") || value.contains("em") || value.contains("px") {
-        return (false, value.to_string()); // Return as inline style
-    }
-
-    // Map to Bootstrap fs-* classes (unitless values)
-    let class = match value {
-        "2.5" => "fs-1",
-        "2" | "2.0" => "fs-2",
-        "1.75" => "fs-3",
-        "1.5" => "fs-4",
-        "1.25" => "fs-5",
-        "0.875" => "fs-6",
-        _ => return (false, format!("{}rem", value)), // Custom value as inline style
-    };
-
-    (true, class.to_string())
-}
-
-/// Map color value to Bootstrap class or inline style
-/// Returns Some((is_class, value)) if valid, None if invalid
-/// Only accepts Bootstrap color names and optionally HEX format (#RRGGBB or #RGB)
-fn map_color(value: &str, is_background: bool) -> Option<(bool, String)> {
-    map_color_with_options(value, is_background, false)
-}
-
-fn map_color_with_options(
-    value: &str,
-    is_background: bool,
-    allow_hex_colors: bool,
-) -> Option<(bool, String)> {
-    let trimmed = value.trim();
-
-    let colors = [
-        "blue", "indigo", "purple", "pink", "red", "orange", "yellow", "green", "teal", "cyan",
-    ];
-
-    // Check if it's a Bootstrap color
-    for color in colors {
-        if trimmed == color {
-            let prefix = if is_background { "bg" } else { "text" };
-            return Some((true, format!("{}-{}", prefix, trimmed)));
-        }
-    }
-
-    // Check if it's a HEX color (#RRGGBB or #RGB)
-    if allow_hex_colors && trimmed.starts_with('#') && (trimmed.len() == 4 || trimmed.len() == 7) {
-        if trimmed[1..].chars().all(|c| c.is_ascii_hexdigit()) {
-            return Some((false, trimmed.to_string()));
-        }
-    }
-
-    None
-}
-
-/// Map badge type to Bootstrap badge classes
-fn map_badge_type(badge_type: &str) -> String {
-    // Check if it's a pill badge
-    if badge_type.ends_with("-pill") {
-        let color = badge_type.trim_end_matches("-pill");
-        format!("badge rounded-pill bg-{}", color)
-    } else {
-        // Regular badge
-        format!("badge bg-{}", badge_type)
-    }
-}
 
 /// Apply inline decoration functions to HTML
 ///
@@ -162,13 +112,14 @@ fn map_badge_type(badge_type: &str) -> String {
 ///
 /// HTML with inline decorations applied
 pub fn apply_inline_decorations(html: &str) -> String {
-    apply_inline_decorations_with_limit_and_options(html, Some(5), false)
+    apply_inline_decorations_with_limit_and_options(html, Some(5), false, false)
 }
 
 pub fn apply_inline_decorations_with_limit_and_options(
     html: &str,
     max_inline_nesting: Option<usize>,
     allow_hex_colors: bool,
+    allow_custom_font_size: bool,
 ) -> String {
     let mut result = html.to_string();
 
@@ -176,7 +127,6 @@ pub fn apply_inline_decorations_with_limit_and_options(
     // Comrak escapes & to &amp;, which prevents our regexes from matching
     // We need to convert &amp; back to & for UMD syntax only
     result = result.replace("&amp;color(", "&color(");
-    result = result.replace("&amp;badge(", "&badge(");
     result = result.replace("&amp;size(", "&size(");
     result = result.replace("&amp;sup(", "&sup(");
     result = result.replace("&amp;sub(", "&sub(");
@@ -208,37 +158,19 @@ pub fn apply_inline_decorations_with_limit_and_options(
         .replace_all(&result, "<s>$1</s>")
         .to_string();
 
-    // Apply || text || → <span class="spoiler">text</span> (Discord spoiler)
+    // Apply || text || → <span class="umd-spoiler">text</span> (Discord spoiler)
     result = DISCORD_SPOILER
         .replace_all(
             &result,
-            r#"<span class="spoiler" role="button" tabindex="0" aria-expanded="false">$1</span>"#,
+            r#"<span class="umd-spoiler" role="button" tabindex="0" aria-expanded="false">$1</span>"#,
         )
         .to_string();
 
-    // Apply &spoiler(text); or &spoiler{text}; → <span class="spoiler">text</span>
+    // Second pass for &spoiler(text); or &spoiler{text}; (see module docs)
     result = INLINE_SPOILER
         .replace_all(&result, |caps: &regex::Captures| {
             let text = caps.get(1).or_else(|| caps.get(2)).map_or("", |m| m.as_str());
-            format!(r#"<span class="spoiler" role="button" tabindex="0" aria-expanded="false">{}</span>"#, text)
-        })
-        .to_string();
-
-    // Apply &badge(type){text}; with optional link support
-    result = INLINE_BADGE
-        .replace_all(&result, |caps: &regex::Captures| {
-            let badge_type = caps.get(1).map_or("", |m| m.as_str());
-            let content = caps.get(2).map_or("", |m| m.as_str());
-            let badge_class = map_badge_type(badge_type);
-
-            // Check if content contains a Markdown link: [text](url)
-            if let Some(link_caps) = MARKDOWN_LINK.captures(content) {
-                let text = link_caps.get(1).map_or("", |m| m.as_str());
-                let url = link_caps.get(2).map_or("", |m| m.as_str());
-                format!("<a href=\"{}\" class=\"{}\">{}</a>", url, badge_class, text)
-            } else {
-                format!("<span class=\"{}\">{}</span>", badge_class, content)
-            }
+            format!(r#"<span class="umd-spoiler" role="button" tabindex="0" aria-expanded="false">{}</span>"#, text)
         })
         .to_string();
 
@@ -253,7 +185,12 @@ pub fn apply_inline_decorations_with_limit_and_options(
             let mut styles = Vec::new();
 
             if !fg.is_empty() && fg != "inherit" {
-                if let Some((is_class, value)) = map_color_with_options(fg, false, allow_hex_colors)
+                if let Some((is_class, value)) =
+                    super::conflict_resolver::map_color_value_with_options(
+                        fg,
+                        false,
+                        allow_hex_colors,
+                    )
                 {
                     if is_class {
                         classes.push(value);
@@ -264,7 +201,12 @@ pub fn apply_inline_decorations_with_limit_and_options(
             }
 
             if !bg.is_empty() && bg != "inherit" {
-                if let Some((is_class, value)) = map_color_with_options(bg, true, allow_hex_colors)
+                if let Some((is_class, value)) =
+                    super::conflict_resolver::map_color_value_with_options(
+                        bg,
+                        true,
+                        allow_hex_colors,
+                    )
                 {
                     if is_class {
                         classes.push(value);
@@ -289,17 +231,18 @@ pub fn apply_inline_decorations_with_limit_and_options(
         })
         .to_string();
 
-    // Apply &size(value){text}; with Bootstrap support
+    // Apply &size(xs|sm|lg|xl){text}; (or an arbitrary value, opt-in only)
     result = INLINE_SIZE
         .replace_all(&result, |caps: &regex::Captures| {
             let size = caps.get(1).map_or("", |m| m.as_str());
             let text = caps.get(2).map_or("", |m| m.as_str());
 
-            let (is_class, value) = map_font_size(size);
-            if is_class {
-                format!("<span class=\"{}\">{}</span>", value, text)
-            } else {
-                format!("<span style=\"font-size: {}\">{}</span>", value, text)
+            match super::conflict_resolver::map_font_size_value(size, allow_custom_font_size) {
+                Some((true, class)) => format!("<span class=\"{}\">{}</span>", class, text),
+                Some((false, value)) => {
+                    format!("<span style=\"font-size: {}\">{}</span>", value, text)
+                }
+                None => text.to_string(),
             }
         })
         .to_string();
@@ -379,7 +322,7 @@ pub fn apply_inline_decorations_with_limit(
     html: &str,
     max_inline_nesting: Option<usize>,
 ) -> String {
-    apply_inline_decorations_with_limit_and_options(html, max_inline_nesting, false)
+    apply_inline_decorations_with_limit_and_options(html, max_inline_nesting, false, false)
 }
 
 fn inline_decoration_nesting_depth(input: &str) -> usize {
@@ -540,7 +483,7 @@ fn parse_inline_block_start(input: &str, start: usize) -> Option<(&str, usize)> 
 fn is_limited_inline_name(name: &str) -> bool {
     matches!(
         name,
-        "badge" | "color" | "size" | "lang" | "abbr" | "ruby" | "time" | "data" | "bdo" | "spoiler"
+        "color" | "size" | "lang" | "abbr" | "ruby" | "time" | "data" | "bdo" | "spoiler"
     )
 }
 
@@ -550,43 +493,47 @@ mod tests {
 
     #[test]
     fn test_map_color_blue() {
-        let result = map_color("blue", false);
+        let result =
+            super::super::conflict_resolver::map_color_value_with_options("blue", false, false);
         assert!(
             result.is_some(),
             "blue should be recognized as a valid color"
         );
         let (is_class, class_or_style) = result.unwrap();
-        assert!(is_class, "blue should be recognized as a Bootstrap class");
+        assert!(is_class, "blue should be recognized as a umd-color-* class");
         assert_eq!(
-            class_or_style, "text-blue",
-            "Expected text-blue, got {}",
+            class_or_style, "umd-color-blue",
+            "Expected umd-color-blue, got {}",
             class_or_style
         );
     }
 
     #[test]
     fn test_map_color_hex() {
-        let result = map_color_with_options("#FF5733", false, true);
+        let result =
+            super::super::conflict_resolver::map_color_value_with_options("#FF5733", false, true);
         assert!(
             result.is_some(),
             "#FF5733 should be recognized as a valid HEX color"
         );
         let (is_class, value) = result.unwrap();
-        assert!(!is_class, "HEX color should not be a Bootstrap class");
+        assert!(!is_class, "HEX color should not be a umd-color-* class");
         assert_eq!(value, "#FF5733", "Expected #FF5733, got {}", value);
     }
 
     #[test]
     fn test_map_color_invalid_html_name() {
-        // HTML color names like "white" or "black" are not in Bootstrap color list
-        // and should be rejected
-        let result = map_color("white", false);
+        // HTML color names like "white" or "black" are not in the UMD
+        // palette and should be rejected
+        let result =
+            super::super::conflict_resolver::map_color_value_with_options("white", false, false);
         assert!(
             result.is_none(),
             "HTML color name 'white' should be rejected"
         );
 
-        let result = map_color("black", false);
+        let result =
+            super::super::conflict_resolver::map_color_value_with_options("black", false, false);
         assert!(
             result.is_none(),
             "HTML color name 'black' should be rejected"
@@ -597,26 +544,22 @@ mod tests {
     fn test_inline_color_foreground() {
         let input = "This is &color(red){red text};";
         let output = apply_inline_decorations(input);
-        // red is now a Bootstrap color, so it should output a class
-        assert!(output.contains(r#"<span class="text-red">red text</span>"#));
+        assert!(output.contains(r#"<span class="umd-color-red">red text</span>"#));
     }
 
     #[test]
     fn test_inline_color_background() {
         let input = "&color(,yellow){yellow bg};";
         let output = apply_inline_decorations(input);
-        // yellow is now a Bootstrap color, so it should output a class
-        assert!(output.contains(r#"<span class="bg-yellow">yellow bg</span>"#));
+        assert!(output.contains(r#"<span class="umd-bg-yellow">yellow bg</span>"#));
     }
 
     #[test]
     fn test_inline_color_both() {
-        // Test with valid Bootstrap colors
         let input = "&color(cyan,yellow){cyan on yellow};";
         let output = apply_inline_decorations(input);
-        // cyan and yellow are Bootstrap custom colors
         assert!(
-            output.contains(r#"class="text-cyan bg-yellow""#),
+            output.contains(r#"class="umd-color-cyan umd-bg-yellow""#),
             "Expected both colors as classes, got: {}",
             output
         );
@@ -624,7 +567,7 @@ mod tests {
 
     #[test]
     fn test_inline_color_invalid() {
-        // white and black are not in Bootstrap color list, so they should be rejected
+        // white and black are not in the UMD palette, so they should be rejected
         let input = "&color(white,black){white on black};";
         let output = apply_inline_decorations(input);
         // Invalid colors should be ignored, text remains as-is
@@ -639,7 +582,7 @@ mod tests {
     fn test_inline_color_hex() {
         // Test with HEX color
         let input = "&color(#FF5733){Custom hex color};";
-        let output = apply_inline_decorations_with_limit_and_options(input, Some(5), true);
+        let output = apply_inline_decorations_with_limit_and_options(input, Some(5), true, false);
         assert!(
             output.contains(r#"style="color: #FF5733""#),
             "Expected HEX color as inline style, got: {}",
@@ -648,11 +591,24 @@ mod tests {
     }
 
     #[test]
-    fn test_inline_size() {
+    fn test_inline_size_keyword() {
+        let input = "&size(lg){larger};";
+        let output = apply_inline_decorations(input);
+        assert!(output.contains("<span class=\"umd-text-size-lg\">larger</span>"));
+    }
+
+    #[test]
+    fn test_inline_size_custom_value_rejected_by_default() {
         let input = "&size(1.5){larger};";
         let output = apply_inline_decorations(input);
-        // 1.5 maps to Bootstrap fs-4 class
-        assert!(output.contains("<span class=\"fs-4\">larger</span>"));
+        assert_eq!(output, "larger");
+    }
+
+    #[test]
+    fn test_inline_size_custom_value_allowed_when_enabled() {
+        let input = "&size(1.5){larger};";
+        let output = apply_inline_decorations_with_limit_and_options(input, Some(5), false, true);
+        assert!(output.contains("<span style=\"font-size: 1.5rem\">larger</span>"));
     }
 
     #[test]
@@ -688,12 +644,10 @@ mod tests {
 
     #[test]
     fn test_multiple_inline_decorations() {
-        let input = "&color(red){Red}; and &size(2){Big}; and &sup(superscript);";
+        let input = "&color(red){Red}; and &size(lg){Big}; and &sup(superscript);";
         let output = apply_inline_decorations(input);
-        // red is now a Bootstrap color, so it should use a class instead of inline style
-        assert!(output.contains(&"text-red"));
-        // 2 maps to Bootstrap fs-2 class
-        assert!(output.contains("fs-2"));
+        assert!(output.contains("umd-color-red"));
+        assert!(output.contains("umd-text-size-lg"));
         assert!(output.contains("<sup>superscript</sup>"));
     }
 
@@ -771,28 +725,6 @@ mod tests {
     }
 
     #[test]
-    fn test_badge_basic() {
-        let input = "&badge(blue){New};";
-        let output = apply_inline_decorations(input);
-        assert!(output.contains("<span class=\"badge bg-blue\">New</span>"));
-    }
-
-    #[test]
-    fn test_badge_pill() {
-        let input = "&badge(success-pill){Active};";
-        let output = apply_inline_decorations(input);
-        assert!(output.contains("badge rounded-pill"));
-        assert!(output.contains("bg-success"));
-    }
-
-    #[test]
-    fn test_badge_with_link() {
-        let input = "&badge(danger){[Error](/error)};";
-        let output = apply_inline_decorations(input);
-        assert!(output.contains("<a href=\"/error\" class=\"badge bg-danger\">Error</a>"));
-    }
-
-    #[test]
     fn test_inline_nesting_depth_detection() {
         let input = "&color(blue){&abbr(text){content};};";
         assert_eq!(inline_decoration_nesting_depth(input), 2);
@@ -808,7 +740,7 @@ mod tests {
     fn test_inline_nesting_limit_blocks_expansion_when_exceeded() {
         let input = "&color(blue){&abbr(text){content};};";
         let output = apply_inline_decorations_with_limit(input, Some(1));
-        assert!(output.contains(r#"<span class="text-blue">"#));
+        assert!(output.contains(r#"<span class="umd-color-blue">"#));
         assert!(output.contains(
             r#"<span class="umd-error-deep-recursive">&amp;abbr(text)&#123;content&#125;;</span>"#
         ));
@@ -819,7 +751,7 @@ mod tests {
     fn test_inline_nesting_limit_disables_only_exceeded_marker() {
         let input = "&color(red){ok}; and &color(blue){&abbr(text){content};};";
         let output = apply_inline_decorations_with_limit(input, Some(1));
-        assert!(output.contains(r#"<span class="text-red">ok</span>"#));
+        assert!(output.contains(r#"<span class="umd-color-red">ok</span>"#));
         assert!(output.contains(
             r#"<span class="umd-error-deep-recursive">&amp;abbr(text)&#123;content&#125;;</span>"#
         ));
@@ -829,14 +761,14 @@ mod tests {
     #[test]
     fn test_color_bootstrap_class() {
         let input = "&color(blue){Blue text};";
-        let output = apply_inline_decorations_with_limit_and_options(input, Some(5), false);
-        assert!(output.contains("class=\"text-blue\""));
+        let output = apply_inline_decorations_with_limit_and_options(input, Some(5), false, false);
+        assert!(output.contains("class=\"umd-color-blue\""));
     }
 
     #[test]
     fn test_color_custom_value() {
         let input = "&color(#FF0000){Red text};";
-        let output = apply_inline_decorations_with_limit_and_options(input, Some(5), true);
+        let output = apply_inline_decorations_with_limit_and_options(input, Some(5), true, false);
         assert!(output.contains("style=\"color: #FF0000\""));
     }
 
@@ -844,42 +776,42 @@ mod tests {
     fn test_spoiler_discord_syntax() {
         let input = "This is ||hidden text|| in a sentence.";
         let output = apply_inline_decorations(input);
-        assert!(output.contains(r#"<span class="spoiler" role="button" tabindex="0" aria-expanded="false">hidden text</span>"#));
+        assert!(output.contains(r#"<span class="umd-spoiler" role="button" tabindex="0" aria-expanded="false">hidden text</span>"#));
     }
 
     #[test]
     fn test_spoiler_umd_function_parentheses() {
         let input = "This is &spoiler(hidden text); in a sentence.";
         let output = apply_inline_decorations(input);
-        assert!(output.contains(r#"<span class="spoiler" role="button" tabindex="0" aria-expanded="false">hidden text</span>"#));
+        assert!(output.contains(r#"<span class="umd-spoiler" role="button" tabindex="0" aria-expanded="false">hidden text</span>"#));
     }
 
     #[test]
     fn test_spoiler_umd_function_braces() {
         let input = "This is &spoiler{hidden text}; in a sentence.";
         let output = apply_inline_decorations(input);
-        assert!(output.contains(r#"<span class="spoiler" role="button" tabindex="0" aria-expanded="false">hidden text</span>"#));
+        assert!(output.contains(r#"<span class="umd-spoiler" role="button" tabindex="0" aria-expanded="false">hidden text</span>"#));
     }
 
     #[test]
     fn test_multiple_spoilers() {
         let input = "||spoiler1|| and ||spoiler2|| and &spoiler{spoiler3};";
         let output = apply_inline_decorations(input);
-        let spoiler_count = output.matches(r#"<span class="spoiler""#).count();
+        let spoiler_count = output.matches(r#"<span class="umd-spoiler""#).count();
         assert_eq!(spoiler_count, 3);
     }
 
     #[test]
-    fn test_size_bootstrap_class() {
-        let input = "&size(1.5){Medium text};";
+    fn test_size_keyword_class() {
+        let input = "&size(sm){Medium text};";
         let output = apply_inline_decorations(input);
-        assert!(output.contains("class=\"fs-4\""));
+        assert!(output.contains("class=\"umd-text-size-sm\""));
     }
 
     #[test]
-    fn test_size_custom_value() {
+    fn test_size_custom_value_allowed_when_enabled() {
         let input = "&size(3rem){Custom size};";
-        let output = apply_inline_decorations(input);
+        let output = apply_inline_decorations_with_limit_and_options(input, Some(5), false, true);
         assert!(output.contains("style=\"font-size: 3rem\""));
     }
 }

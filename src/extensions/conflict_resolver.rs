@@ -161,33 +161,47 @@ fn process_table_plugin(function_args: &str, content: &str) -> String {
     }
 }
 
-/// Map font size value to Bootstrap class or inline style
-fn map_font_size_value(value: &str) -> (bool, String) {
-    // Check if value has unit (rem, em, px, etc.)
-    if value.contains("rem") || value.contains("em") || value.contains("px") {
-        return (false, value.to_string()); // Return as inline style
+/// Map a `&size()` value to a `umd-text-size-*` class, or (only when
+/// `allow_custom_font_size` is enabled) an arbitrary inline `font-size`.
+///
+/// By default only the keyword sizes `xs`/`sm`/`lg`/`xl` are accepted —
+/// there's no discrete class for arbitrary numeric values, and allowing
+/// unbounded custom sizes is opt-in to prevent abuse in untrusted content.
+/// Returns `Some((is_class, value))`, or `None` if the value is rejected.
+///
+/// `pub(crate)`: also called from `inline_decorations`'s second sweep (which
+/// catches `&size()` nested inside another standard plugin's content) so the
+/// two passes can never disagree on what a given value maps to.
+pub(crate) fn map_font_size_value(
+    value: &str,
+    allow_custom_font_size: bool,
+) -> Option<(bool, String)> {
+    let trimmed = value.trim();
+
+    if matches!(trimmed, "xs" | "sm" | "lg" | "xl") {
+        return Some((true, format!("umd-text-size-{}", trimmed)));
     }
 
-    // Map to Bootstrap fs-* classes (unitless values)
-    let class = match value {
-        "2.5" => "fs-1",
-        "2" | "2.0" => "fs-2",
-        "1.75" => "fs-3",
-        "1.5" => "fs-4",
-        "1.25" => "fs-5",
-        "0.875" => "fs-6",
-        _ => return (false, format!("{}rem", value)), // Custom value as inline style
-    };
+    if !allow_custom_font_size {
+        return None;
+    }
 
-    (true, class.to_string())
+    if trimmed.contains("rem") || trimmed.contains("em") || trimmed.contains("px") {
+        return Some((false, trimmed.to_string()));
+    }
+
+    Some((false, format!("{}rem", trimmed)))
 }
 
-/// Map color value to Bootstrap class or inline style
+/// Map color value to a `umd-color-*`/`umd-bg-*` class or inline style
 fn map_color_value(value: &str, is_background: bool) -> Option<(bool, String)> {
     map_color_value_with_options(value, is_background, false)
 }
 
-fn map_color_value_with_options(
+/// `pub(crate)`: also called from `inline_decorations`'s second sweep (which
+/// catches `&color()` nested inside another standard plugin's content) so
+/// the two passes can never disagree on the palette or class naming.
+pub(crate) fn map_color_value_with_options(
     value: &str,
     is_background: bool,
     allow_hex_colors: bool,
@@ -195,10 +209,11 @@ fn map_color_value_with_options(
     let trimmed = value.trim();
 
     let colors = [
-        "blue", "indigo", "purple", "pink", "red", "orange", "yellow", "green", "teal", "cyan",
+        "blue", "indigo", "violet", "purple", "pink", "red", "orange", "amber", "yellow", "lime",
+        "green", "teal", "cyan", "brown", "gray", "pewter",
     ];
 
-    let prefix = if is_background { "bg" } else { "text" };
+    let prefix = if is_background { "umd-bg" } else { "umd-color" };
 
     for color in colors {
         if trimmed == color {
@@ -330,13 +345,30 @@ pub fn preprocess_conflicts(input: &str) -> (String, HeaderIdMap) {
     (result, header_map)
 }
 
-/// Convert inline decoration function to HTML
-/// Returns None if not a decoration function
-fn convert_inline_decoration_to_html(
+/// Dispatch a `&function(args){content};` call to its built-in ("standard")
+/// inline plugin implementation, producing real semantic HTML directly.
+///
+/// This is the inline counterpart of the block-level standard plugins
+/// (`@table`/`@math`/`@popover`/`@clear`/`@detail`, see `plugin_markers.rs`
+/// restoration in this module) — a function name recognized here bypasses
+/// the generic `<template class="umd-plugin-{name}">` fallback that
+/// unrecognized/host-defined plugin names get. Returns `None` for anything
+/// not in this list, letting the caller fall back to the generic template.
+///
+/// Nested occurrences (a standard plugin call inside another one's content)
+/// aren't expanded here — the outer marker's content captures them as raw
+/// text — but `inline_decorations::apply_inline_decorations_with_limit_and_options`
+/// runs a second sweep afterward that catches exactly this case. Keep that
+/// module's per-function regexes calling back into this module's shared
+/// mapping helpers (`map_color_value_with_options`, `map_font_size_value`)
+/// rather than re-deriving the mapping, so nested and top-level output never
+/// drift apart.
+fn convert_standard_inline_plugin_to_html(
     function: &str,
     args: &str,
     content: &str,
     allow_hex_colors: bool,
+    allow_custom_font_size: bool,
 ) -> Option<String> {
     match function {
         // Simple wrapper tags without content
@@ -349,6 +381,13 @@ fn convert_inline_decoration_to_html(
         "small" => Some(format!("<small>{}</small>", content)),
         "u" => Some(format!("<u>{}</u>", content)),
         "bdi" => Some(format!("<bdi>{}</bdi>", content)),
+        "spoiler" => {
+            // &spoiler{text}; → <span class="umd-spoiler" role="button" ...>text</span>
+            Some(format!(
+                r#"<span class="umd-spoiler" role="button" tabindex="0" aria-expanded="false">{}</span>"#,
+                content
+            ))
+        }
 
         // Tags with attributes
         "ruby" => {
@@ -385,44 +424,6 @@ fn convert_inline_decoration_to_html(
         "sub" => {
             // &sub(text); → <sub>text</sub>
             Some(format!("<sub>{}</sub>", args))
-        }
-        "badge" => {
-            // &badge(type){content}; → <span class="badge bg-type">content</span>
-            // Support for badge-pill variants and links
-            let (badge_color, is_pill) = if args.ends_with("-pill") {
-                let color = args.trim_end_matches("-pill");
-                (color, true)
-            } else {
-                (args, false)
-            };
-            let Some((true, mapped_color)) = map_color_value_with_options(
-                badge_color,
-                true,
-                allow_hex_colors,
-            ) else {
-                return Some(content.to_string());
-            };
-            let badge_class = if is_pill {
-                format!("badge rounded-pill {}", mapped_color)
-            } else {
-                format!("badge {}", mapped_color)
-            };
-
-            // Check if content contains a Markdown link: [text](url)
-            let link_regex = Regex::new(r"\[([^\]]+)\]\(([^)]+)\)").unwrap();
-            if let Some(link_caps) = link_regex.captures(content) {
-                let text = link_caps.get(1).map_or("", |m| m.as_str());
-                let url = link_caps.get(2).map_or("", |m| m.as_str());
-                Some(format!(
-                    "<a href=\"{}\" class=\"{}\">{}</a>",
-                    url, badge_class, text
-                ))
-            } else {
-                Some(format!(
-                    "<span class=\"{}\">{}</span>",
-                    badge_class, content
-                ))
-            }
         }
         "color" => {
             // &color(fg,bg){text}; with Bootstrap support
@@ -475,33 +476,42 @@ fn convert_inline_decoration_to_html(
             }
         }
         "size" => {
-            // &size(value){text}; with Bootstrap support
-            let (is_class, value) = map_font_size_value(args);
-            if is_class {
-                Some(format!("<span class=\"{}\">{}</span>", value, content))
-            } else {
-                Some(format!(
+            // &size(xs|sm|lg|xl){text}; → <span class="umd-text-size-*">
+            // (or, with allow_custom_font_size, &size(value){text}; → inline font-size)
+            match map_font_size_value(args, allow_custom_font_size) {
+                Some((true, class)) => {
+                    Some(format!("<span class=\"{}\">{}</span>", class, content))
+                }
+                Some((false, value)) => Some(format!(
                     "<span style=\"font-size: {}\">{}</span>",
                     value, content
-                ))
+                )),
+                None => Some(content.to_string()),
             }
         }
         _ => None,
     }
 }
 
-/// Convert args-only inline decoration function to HTML
-fn convert_inline_decoration_argsonly_to_html(function: &str, args: &str) -> Option<String> {
+/// Standard inline plugin dispatch for the args-only form: `&function(args);`
+fn convert_standard_inline_plugin_argsonly_to_html(function: &str, args: &str) -> Option<String> {
     match function {
         "sup" => Some(format!("<sup>{}</sup>", args)),
         "sub" => Some(format!("<sub>{}</sub>", args)),
         "math" => render_math_html(args, false),
+        "spoiler" => {
+            // &spoiler(text); → <span class="umd-spoiler" role="button" ...>text</span>
+            Some(format!(
+                r#"<span class="umd-spoiler" role="button" tabindex="0" aria-expanded="false">{}</span>"#,
+                args
+            ))
+        }
         _ => None,
     }
 }
 
-/// Convert no-args inline decoration function to HTML
-fn convert_inline_decoration_noargs_to_html(function: &str) -> Option<String> {
+/// Standard inline plugin dispatch for the no-args form: `&function;`
+fn convert_standard_inline_plugin_noargs_to_html(function: &str) -> Option<String> {
     match function {
         "wbr" => Some("<wbr />".to_string()),
         "br" => Some("<br />".to_string()),
@@ -749,6 +759,7 @@ pub fn postprocess_conflicts_with_options(
     html: &str,
     header_map: &HeaderIdMap,
     allow_hex_colors: bool,
+    allow_custom_font_size: bool,
     icons: &crate::parser::Icons,
 ) -> String {
     use crate::extensions::block_decorations;
@@ -856,6 +867,7 @@ pub fn postprocess_conflicts_with_options(
                 block_decorations::apply_block_decorations_with_options(
                     &decoration,
                     allow_hex_colors,
+                    allow_custom_font_size,
                 )
             }
         })
@@ -894,11 +906,12 @@ pub fn postprocess_conflicts_with_options(
             }
 
             // Try to convert as inline decoration function
-            if let Some(html) = convert_inline_decoration_to_html(
+            if let Some(html) = convert_standard_inline_plugin_to_html(
                 function,
                 args,
                 &content,
                 allow_hex_colors,
+                allow_custom_font_size,
             ) {
                 return html;
             }
@@ -931,7 +944,7 @@ pub fn postprocess_conflicts_with_options(
             let args = &caps[2];
 
             // Try to convert as inline decoration function
-            if let Some(html) = convert_inline_decoration_argsonly_to_html(function, args) {
+            if let Some(html) = convert_standard_inline_plugin_argsonly_to_html(function, args) {
                 return html;
             }
 
@@ -952,7 +965,7 @@ pub fn postprocess_conflicts_with_options(
             let function = &caps[1];
 
             // Try to convert as inline decoration function
-            if let Some(html) = convert_inline_decoration_noargs_to_html(function) {
+            if let Some(html) = convert_standard_inline_plugin_noargs_to_html(function) {
                 return html;
             }
 
@@ -1163,7 +1176,13 @@ pub fn postprocess_conflicts_with_options(
 }
 
 pub fn postprocess_conflicts(html: &str, header_map: &HeaderIdMap) -> String {
-    postprocess_conflicts_with_options(html, header_map, false, &crate::parser::Icons::default())
+    postprocess_conflicts_with_options(
+        html,
+        header_map,
+        false,
+        false,
+        &crate::parser::Icons::default(),
+    )
 }
 
 /// Apply indeterminate task list state to rendered checkboxes.
@@ -1208,11 +1227,11 @@ fn apply_bootstrap_enhancements(
     // Add default class to blockquotes
     let blockquote_pattern = Regex::new(r#"<blockquote>"#).unwrap();
     result = blockquote_pattern
-        .replace_all(&result, "<blockquote class=\"blockquote\">")
+        .replace_all(&result, "<blockquote class=\"umd-blockquote\">")
         .to_string();
 
     // Handle GFM-alert-style blockquotes: > [!NOTE] etc.
-    // These are rendered as <blockquote class="blockquote"><p>[!NOTE] ...</p></blockquote>.
+    // These are rendered as <blockquote class="umd-blockquote"><p>[!NOTE] ...</p></blockquote>.
     // Output is UMD's own .umd-note-* taxonomy, not Bootstrap's .alert-* — a host app
     // may use Bootstrap's alert component itself, so UMD doesn't borrow its classes.
     // Keyword aliases (DANGER/SUCCESS/WARN/INFO) are resolved here; the stylesheet only
@@ -1226,7 +1245,7 @@ fn apply_bootstrap_enhancements(
     // equivalent, so they're left without a role attribute rather than forced
     // into "note" semantics that wouldn't actually describe them.
     let gfm_alert_pattern = Regex::new(
-        r#"<blockquote class="blockquote">\s*<p>\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION|DANGER|MUST|RECOMMEND|DONT|NEVER|SUCCESS|WARN|INFO|EXAMPLE)\]\s*(.*?)</p>\s*</blockquote>"#
+        r#"<blockquote class="umd-blockquote">\s*<p>\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION|DANGER|MUST|RECOMMEND|DONT|NEVER|SUCCESS|WARN|INFO|EXAMPLE)\]\s*(.*?)</p>\s*</blockquote>"#
     ).unwrap();
 
     result = gfm_alert_pattern
@@ -1463,14 +1482,15 @@ mod tests {
         let header_map = HeaderIdMap::new();
         let input = "<blockquote><p>Quote</p></blockquote>";
         let output = postprocess_conflicts(input, &header_map);
-        assert!(output.contains(r#"<blockquote class="blockquote">"#));
+        assert!(output.contains(r#"<blockquote class="umd-blockquote">"#));
     }
 
     #[test]
     fn test_gfm_alert_note() {
         let header_map = HeaderIdMap::new();
         let icons = crate::parser::Icons::default();
-        let input = r#"<blockquote class="blockquote"><p>[!NOTE] This is a note</p></blockquote>"#;
+        let input =
+            r#"<blockquote class="umd-blockquote"><p>[!NOTE] This is a note</p></blockquote>"#;
         let output = postprocess_conflicts(input, &header_map);
         assert!(
             output.contains(r#"<aside class="umd-note umd-note-note" role="doc-notice note">"#)
@@ -1486,7 +1506,8 @@ mod tests {
     fn test_gfm_alert_example() {
         let header_map = HeaderIdMap::new();
         let icons = crate::parser::Icons::default();
-        let input = r#"<blockquote class="blockquote"><p>[!EXAMPLE] Sample usage</p></blockquote>"#;
+        let input =
+            r#"<blockquote class="umd-blockquote"><p>[!EXAMPLE] Sample usage</p></blockquote>"#;
         let output = postprocess_conflicts(input, &header_map);
         assert!(
             output
@@ -1503,7 +1524,7 @@ mod tests {
         let header_map = HeaderIdMap::new();
         for input_type in ["IMPORTANT", "WARNING", "CAUTION", "MUST", "RECOMMEND", "DONT", "NEVER"] {
             let input = format!(
-                r#"<blockquote class="blockquote"><p>[!{}] Body</p></blockquote>"#,
+                r#"<blockquote class="umd-blockquote"><p>[!{}] Body</p></blockquote>"#,
                 input_type
             );
             let output = postprocess_conflicts(&input, &header_map);
@@ -1520,7 +1541,8 @@ mod tests {
     fn test_gfm_alert_warning() {
         let header_map = HeaderIdMap::new();
         let icons = crate::parser::Icons::default();
-        let input = r#"<blockquote class="blockquote"><p>[!WARNING] Be careful</p></blockquote>"#;
+        let input =
+            r#"<blockquote class="umd-blockquote"><p>[!WARNING] Be careful</p></blockquote>"#;
         let output = postprocess_conflicts(input, &header_map);
         assert!(output.contains(r#"<aside class="umd-note umd-note-warning">"#));
         assert!(output.contains(&format!(
@@ -1545,7 +1567,7 @@ mod tests {
             ("NEVER", "umd-note-never", "Never", &icons.never),
         ] {
             let input = format!(
-                r#"<blockquote class="blockquote"><p>[!{}] Body</p></blockquote>"#,
+                r#"<blockquote class="umd-blockquote"><p>[!{}] Body</p></blockquote>"#,
                 input_type
             );
             let output = postprocess_conflicts(&input, &header_map);
@@ -1579,7 +1601,7 @@ mod tests {
             ("INFO", "umd-note-tip"),
         ] {
             let input = format!(
-                r#"<blockquote class="blockquote"><p>[!{}] Body</p></blockquote>"#,
+                r#"<blockquote class="umd-blockquote"><p>[!{}] Body</p></blockquote>"#,
                 alias
             );
             let output = postprocess_conflicts(&input, &header_map);

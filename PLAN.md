@@ -482,7 +482,20 @@ CSS 仕様に `vertical-align` の論理的代替が存在しないため、`V-`
 - [x] セマンティックトークン（`primary`/`danger`等）の除去、ホスト側責務として明記
 - [x] リファレンスCSS実装（`scss/` 配下の全ファイル整備）
 - [x] `tokens.scss`: `light-dark()` によるダークモード一本化、パレット変数参照に移行
-- [ ] Bootstrap依存コードの置き換え（`src/extensions/` 配下のクラス生成箇所）
+- [x] Bootstrap依存コードの置き換え（テーブル以外）: `block_decorations.rs`（COLOR/SIZE/TRUNCATE/文字揃え。ただし`TOP/MIDDLE/BOTTOM/BASELINE`とテーブル/プラグイン配置ラッパー`apply_block_placement`はテーブル専用のため未着手）、`inline_decorations.rs`/`conflict_resolver.rs`の色マッピング（`umd-color-*`/`umd-bg-*`へ改名、16色パレットに拡張）、通常の`<blockquote>`（`umd-blockquote`へ改名）、`media.rs`（`img-fluid`削除・`w-100`→`umd-block-justify`・メディア配置`ms-auto`等→`umd-block-start/end`・`umd-inline-center`）、Mermaid SVGの`--bs-*`→`--umd-color-*`
+- [x] `&badge()`はBootstrap依存の解消コストに見合わないため機能自体を削除（`convert_standard_inline_plugin_to_html`/`inline_decorations.rs`の両実装・`scss/components/badge.scss`・関連テストを削除。未対応関数は既存の汎用プラグインフォールバック`<template class="umd-plugin umd-plugin-badge">`に自然に委譲される）
+- [x] `SIZE()`/`&size()`は既定で`xs`/`sm`/`lg`/`xl`のみ受け付け`umd-text-size-*`クラスを出力（`.umd-text-size-*`はキーワード4種のみで数値remスケールと対応しないため）。任意rem/px値は新設`ParserOptions.allow_custom_font_size`（既定`false`）で opt-in
+
+### インライン標準プラグインの整理（2026年9月）
+
+- 発見: `&color()`/`&size()`/`&badge()`（削除済）は `conflict_resolver.rs` のマーカー復元経路で処理される一方、`&spoiler()`（`&spoiler(text);`/`&spoiler{text};`）にはそのマーカー復元側の対応ケースが無く、汎用プラグインへの取りこぼしフォールバックで`<template class="umd-plugin umd-plugin-spoiler">`になってしまっていた（未実装のまま放置されていたバグ）
+- 発見: ある標準プラグインの中に別の標準プラグインをネストした場合（例: `&color(blue){&size(sm){x};};`）、外側のマーカー正規表現が内側の呼び出しを非展開のまま生テキストとして飲み込むため、`inline_decorations.rs`側の“二回目の掃引”（`apply_inline_decorations_with_limit_and_options`、`mod.rs`でマーカー復元の後に実行）が実際にそれを展開している。このためこのファイルの`&color()`/`&size()`のマッピングロジックは见かけ上デッドコードではなく、ネスト時にのみ効くセカンドパスとして機能していた
+- 対応: `conflict_resolver.rs`に`"spoiler"`ケースを追加（`umd-spoiler`クラス、content版・argsonly版の両方）。`map_color_value_with_options`/`map_font_size_value`を`pub(crate)`化し、`inline_decorations.rs`側のローカル重複実装を削除して同じ関数を呼び出すよう統一（二重実装によるドリフトを恒久的に防止）。Discord風`||text||`スポイラーの出力クラスも`spoiler`→`umd-spoiler`に修正
+- 命名: `convert_inline_decoration_to_html`系3関数を`convert_standard_inline_plugin_to_html`系に改名し、ブロック型標準プラグイン（`@table`/`@math`/`@popover`/`@clear`/`@detail`）と対になる「インライン標準プラグイン」という位置づけを明示（docs: [plugin-system.md](docs/plugin-system.md) / [inline-plugins.md](docs/inline-plugins.md)）
+- 未着手: `dfn`/`kbd`/`samp`/`var`/`cite`/`q`/`small`/`bdi`/`ruby`/`time`/`data`/`bdo`/`sup`/`sub`は設定オプションを持たない単純な文字列組み立てのため二重実装のドリフトリスクは低いが、`inline_decorations.rs`にまだ個別正規表現のコピーが残っている（統合の余地あり）
+- 未着手: `src/extensions/plugins.rs`（`apply_plugin_syntax`）はどこからも呼ばれていない完全なデッドコード（実際のプラグイン処理は`plugin_markers.rs`+`conflict_resolver.rs`が担当）。`docs/plugin-system.md`の「実装の主担当」に記載が残っているが未整理
+
+- [ ] テーブル関連のBootstrap依存の置き換え（`conflict_resolver.rs`の`<table class="table">`/`table-responsive`/セル揃え、`table/umd/decorations.rs`、`block_decorations.rs`の`map_vertical_align`と`apply_block_placement`）— 意図的に保留中
 - [ ] 既存テスト（`bootstrap_integration.rs` 等）の移行方針検討
 - [ ] ドキュメント更新
 

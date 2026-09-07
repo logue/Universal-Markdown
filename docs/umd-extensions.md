@@ -31,7 +31,7 @@ Universal Markdown 独自の構文拡張をまとめた仕様です。
 
 ## インライン装飾関数
 
-- 見た目: `&color`, `&size`, `&badge`
+- 見た目: `&color`, `&size`（既定はキーワードサイズ `xs`/`sm`/`lg`/`xl` のみ。詳細は [inline-plugins.md](inline-plugins.md)）
 - セマンティック: `&abbr`, `&ruby`, `&time`, `&kbd`, `&cite` など
 - 改行/折返し: `&br;`, `&wbr;`
 

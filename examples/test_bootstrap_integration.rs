@@ -1,23 +1,15 @@
 use umd::parse;
 
 fn main() {
-    println!("=== Badge Basic ===");
-    let output = parse("Check this &badge(primary){New};");
-    println!("{}", output);
-
-    println!("\n=== Badge with Link ===");
-    let output = parse("&badge(danger){[Error](/error)};");
-    println!("{}", output);
-
-    println!("\n=== Color Bootstrap ===");
+    println!("=== Color Bootstrap ===");
     let output = parse("&color(primary){Primary text};");
     println!("{}", output);
 
-    println!("\n=== Size Bootstrap ===");
-    let output = parse("&size(1.5){Medium text};");
+    println!("\n=== Size Keyword ===");
+    let output = parse("&size(lg){Medium text};");
     println!("{}", output);
 
-    println!("\n=== Size Custom ===");
+    println!("\n=== Size Custom (rejected by default) ===");
     let output = parse("&size(3rem){Large text};");
     println!("{}", output);
 
@@ -38,7 +30,7 @@ fn main() {
     println!("{}", output);
 
     println!("\n=== Compound Prefixes ===");
-    let output = parse("SIZE(1.5): COLOR(primary): CENTER: Styled text");
+    let output = parse("SIZE(lg): COLOR(primary): CENTER: Styled text");
     println!("{}", output);
 
     println!("\n=== Custom Color Blue ===");
