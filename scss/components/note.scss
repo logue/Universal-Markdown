@@ -3,10 +3,15 @@
  *
  * Syntax: > [!NOTE] ... (GFM-alert-style blockquote), rendered as
  *   <aside class="umd-note umd-note-{type}"><p class="umd-note-title">
- *     {Label}</p><p>{content}</p></aside>
+ *     {Icon} {Label}</p><p>{content}</p></aside>
  * by the Rust parser (src/extensions/conflict_resolver.rs). <aside> rather
  * than <div> — this is tangential commentary, not a live alert, so it
  * doesn't borrow Bootstrap's .alert markup or role="alert".
+ *
+ * The per-type icon is HTML markup, not CSS-generated content — it comes
+ * from `ParserOptions.icons` (src/parser.rs) so consuming apps can swap icon
+ * systems (defaults to Iconify's <iconify-icon> with Google Material Icons).
+ * This stylesheet only styles colors/spacing, never icon glyphs.
  *
  * Keyword aliases (DANGER, SUCCESS, WARN, INFO) are resolved on the Rust
  * side to their canonical type below — no extra classes/rules needed here.
@@ -42,10 +47,6 @@
   color: var(--umd-color-blue);
 }
 
-:where(.umd-note-note .umd-note-title)::before {
-  content: "ℹ️ ";
-}
-
 :where(.umd-note-tip) {
   background-color: var(--umd-bg-green);
   border-inline-start-color: var(--umd-color-green);
@@ -53,10 +54,6 @@
 
 :where(.umd-note-tip .umd-note-title) {
   color: var(--umd-color-green);
-}
-
-:where(.umd-note-tip .umd-note-title)::before {
-  content: "💡 ";
 }
 
 :where(.umd-note-important) {
@@ -68,10 +65,6 @@
   color: var(--umd-color-purple);
 }
 
-:where(.umd-note-important .umd-note-title)::before {
-  content: "❗ ";
-}
-
 :where(.umd-note-warning) {
   background-color: var(--umd-bg-amber);
   border-inline-start-color: var(--umd-color-amber);
@@ -79,10 +72,6 @@
 
 :where(.umd-note-warning .umd-note-title) {
   color: var(--umd-color-amber);
-}
-
-:where(.umd-note-warning .umd-note-title)::before {
-  content: "⚠️ ";
 }
 
 :where(.umd-note-caution) {
@@ -94,10 +83,6 @@
   color: var(--umd-color-red);
 }
 
-:where(.umd-note-caution .umd-note-title)::before {
-  content: "🛑 ";
-}
-
 :where(.umd-note-must) {
   background-color: var(--umd-bg-indigo);
   border-inline-start-color: var(--umd-color-indigo);
@@ -105,10 +90,6 @@
 
 :where(.umd-note-must .umd-note-title) {
   color: var(--umd-color-indigo);
-}
-
-:where(.umd-note-must .umd-note-title)::before {
-  content: "📌 ";
 }
 
 :where(.umd-note-recommend) {
@@ -120,10 +101,6 @@
   color: var(--umd-color-teal);
 }
 
-:where(.umd-note-recommend .umd-note-title)::before {
-  content: "👍 ";
-}
-
 :where(.umd-note-dont) {
   background-color: var(--umd-bg-orange);
   border-inline-start-color: var(--umd-color-orange);
@@ -131,10 +108,6 @@
 
 :where(.umd-note-dont .umd-note-title) {
   color: var(--umd-color-orange);
-}
-
-:where(.umd-note-dont .umd-note-title)::before {
-  content: "🚫 ";
 }
 
 :where(.umd-note-never) {
@@ -146,10 +119,6 @@
   color: var(--umd-color-pink);
 }
 
-:where(.umd-note-never .umd-note-title)::before {
-  content: "⛔ ";
-}
-
 :where(.umd-note-example) {
   background-color: var(--umd-bg-gray);
   border-inline-start-color: var(--umd-color-gray);
@@ -157,8 +126,4 @@
 
 :where(.umd-note-example .umd-note-title) {
   color: var(--umd-color-gray);
-}
-
-:where(.umd-note-example .umd-note-title)::before {
-  content: "📄 ";
 }

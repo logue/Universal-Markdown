@@ -638,7 +638,7 @@ mod tests {
             html.contains("<a href=\"video.mp4\" download class=\"download-link video-fallback\">")
         );
         assert!(html.contains(
-            r#"<span class="bi bi-camera-video-fill" aria-hidden="true"></span> Demo video"#
+            r#"<iconify-icon icon="ic:baseline-videocam" aria-hidden="true"></iconify-icon> Demo video"#
         ));
     }
 
@@ -660,7 +660,7 @@ mod tests {
             html.contains("<a href=\"audio.mp3\" download class=\"download-link audio-fallback\">")
         );
         assert!(html.contains(
-            r#"<span class="bi bi-music-note-beamed" aria-hidden="true"></span> Background music"#
+            r#"<iconify-icon icon="ic:baseline-music-note" aria-hidden="true"></iconify-icon> Background music"#
         ));
     }
 
@@ -720,7 +720,7 @@ mod tests {
         assert!(html.contains("<a href=\"document.pdf\" download class=\"download-link\""));
         assert!(html.contains("title=\"Annual Research\""));
         assert!(html.contains(
-            r#"<span class="bi bi-file-earmark-arrow-down-fill" aria-hidden="true"></span> Research Report"#
+            r#"<iconify-icon icon="ic:baseline-file-download" aria-hidden="true"></iconify-icon> Research Report"#
         ));
     }
 
@@ -735,7 +735,7 @@ mod tests {
         );
         assert!(html.contains("<a href=\"archive.zip\" download"));
         assert!(html.contains(
-            r#"<span class="bi bi-file-earmark-arrow-down-fill" aria-hidden="true"></span> archive.zip"#
+            r#"<iconify-icon icon="ic:baseline-file-download" aria-hidden="true"></iconify-icon> archive.zip"#
         )); // URL as fallback
     }
 
@@ -749,7 +749,7 @@ mod tests {
             &crate::parser::Icons::default(),
         );
         assert!(html.contains(
-            r#"<span class="bi bi-camera-video-fill" aria-hidden="true"></span> video.mp4"#
+            r#"<iconify-icon icon="ic:baseline-videocam" aria-hidden="true"></iconify-icon> video.mp4"#
         )); // URL as fallback in download link
     }
 
@@ -763,7 +763,7 @@ mod tests {
             &crate::parser::Icons::default(),
         );
         assert!(html.contains(
-            r#"<span class="bi bi-music-note-beamed" aria-hidden="true"></span> audio.mp3"#
+            r#"<iconify-icon icon="ic:baseline-music-note" aria-hidden="true"></iconify-icon> audio.mp3"#
         )); // URL as fallback in download link
     }
 
@@ -778,7 +778,7 @@ mod tests {
         );
         assert!(html.contains("href=\"document.pdf?version=2\""));
         assert!(html.contains(
-            r#"<span class="bi bi-file-earmark-arrow-down-fill" aria-hidden="true"></span> User Guide"#
+            r#"<iconify-icon icon="ic:baseline-file-download" aria-hidden="true"></iconify-icon> User Guide"#
         ));
     }
 

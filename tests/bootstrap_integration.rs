@@ -3,6 +3,7 @@
 //! Tests for Bootstrap class generation and styling features
 
 use umd::parse;
+use umd::parser::Icons;
 
 #[test]
 fn test_bootstrap_table_default_class() {
@@ -20,27 +21,39 @@ fn test_bootstrap_blockquote_default_class() {
 
 #[test]
 fn test_gfm_alert_note() {
+    let icons = Icons::default();
     let input = "> [!NOTE]\n> This is an informational note";
     let output = parse(input);
     assert!(output.contains(r#"<aside class="umd-note umd-note-note" role="doc-notice note">"#));
-    assert!(output.contains(r#"<p class="umd-note-title">Note</p>"#));
+    assert!(output.contains(&format!(
+        r#"<p class="umd-note-title">{} Note</p>"#,
+        icons.note
+    )));
     assert!(output.contains("This is an informational note"));
 }
 
 #[test]
 fn test_gfm_alert_warning() {
+    let icons = Icons::default();
     let input = "> [!WARNING]\n> Be careful here";
     let output = parse(input);
     assert!(output.contains(r#"<aside class="umd-note umd-note-warning">"#));
-    assert!(output.contains(r#"<p class="umd-note-title">Warning</p>"#));
+    assert!(output.contains(&format!(
+        r#"<p class="umd-note-title">{} Warning</p>"#,
+        icons.warning
+    )));
 }
 
 #[test]
 fn test_gfm_alert_tip() {
+    let icons = Icons::default();
     let input = "> [!TIP]\n> Here's a helpful tip";
     let output = parse(input);
     assert!(output.contains(r#"<aside class="umd-note umd-note-tip" role="doc-tip note">"#));
-    assert!(output.contains(r#"<p class="umd-note-title">Tip</p>"#));
+    assert!(output.contains(&format!(
+        r#"<p class="umd-note-title">{} Tip</p>"#,
+        icons.tip
+    )));
 }
 
 #[test]
@@ -480,7 +493,7 @@ fn test_inline_code_hex_color_adds_swatch() {
     let output = parse(input);
     assert!(
         output.contains(
-            r#"<code><span class="inline-code-color" style="background-color: #ffce44;"><span class="bi bi-palette-fill" aria-hidden="true"></span></span>#ffce44</code>"#
+            r#"<code><span class="inline-code-color" style="background-color: #ffce44;"><iconify-icon icon="ic:baseline-palette" aria-hidden="true"></iconify-icon></span>#ffce44</code>"#
         ),
         "output: {}",
         output
@@ -500,7 +513,7 @@ fn test_inline_code_function_color_adds_swatch() {
         let input = format!("`{}`", color);
         let output = parse(&input);
         let expected = format!(
-            r#"<code><span class="inline-code-color" style="background-color: {};"><span class="bi bi-palette-fill" aria-hidden="true"></span></span>{}</code>"#,
+            r#"<code><span class="inline-code-color" style="background-color: {};"><iconify-icon icon="ic:baseline-palette" aria-hidden="true"></iconify-icon></span>{}</code>"#,
             color, color
         );
         assert!(

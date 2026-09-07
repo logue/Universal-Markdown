@@ -7,7 +7,7 @@
 		"dev:css": "rsbuild dev"
 	},
 	"devDependencies": {
-		"@rsbuild/core": "^2.1.13",
+		"@rsbuild/core": "^2.2.3",
 		"@rsbuild/plugin-sass": "^2.0.1"
 	},
 	"dependencies": {

@@ -8,37 +8,98 @@ use comrak::{Arena, Options, format_html_with_plugins, parse_document};
 
 /// Icon markup configuration
 ///
-/// Values can include raw HTML (e.g. `<span class="bi bi-camera-video-fill"></span>`).
-/// These values are inserted directly into the HTML output without sanitization —
-/// only use trusted, developer-supplied values here.
+/// Values can include raw HTML (e.g.
+/// `<iconify-icon icon="ic:baseline-videocam"></iconify-icon>`). These values
+/// are inserted directly into the HTML output without sanitization — only use
+/// trusted, developer-supplied values here.
+///
+/// Defaults render via [Iconify's `<iconify-icon>` web component](https://iconify.design/docs/iconify-icon/)
+/// using Google's Material Icons set (`ic:` prefix). Consuming apps must load
+/// the Iconify Icon script themselves (e.g. via the `iconify-icon` package or
+/// its CDN build) for the default markup to render; override any field with a
+/// different icon system (Bootstrap Icons, an inline SVG, etc.) as needed.
 #[derive(Debug, Clone)]
 pub struct Icons {
     /// Icon for video fallback download links.
-    /// Default: `<span class="bi bi-camera-video-fill" aria-hidden="true"></span>`
+    /// Default: `<iconify-icon icon="ic:baseline-videocam" aria-hidden="true"></iconify-icon>`
     pub video: String,
     /// Icon for audio fallback download links.
-    /// Default: `<span class="bi bi-music-note-beamed" aria-hidden="true"></span>`
+    /// Default: `<iconify-icon icon="ic:baseline-music-note" aria-hidden="true"></iconify-icon>`
     pub audio: String,
     /// Icon for downloadable file links.
-    /// Default: `<span class="bi bi-file-earmark-arrow-down-fill" aria-hidden="true"></span>`
+    /// Default: `<iconify-icon icon="ic:baseline-file-download" aria-hidden="true"></iconify-icon>`
     pub download: String,
     /// Icon markup rendered inside the inline color swatch.
-    /// Default: `<span class="bi bi-palette-fill" aria-hidden="true"></span>`
+    /// Default: `<iconify-icon icon="ic:baseline-palette" aria-hidden="true"></iconify-icon>`
     pub color_swatch: String,
+    /// Icon for `> [!NOTE]` / `> [!SUCCESS]` callouts.
+    /// Default: `<iconify-icon icon="ic:baseline-info" aria-hidden="true"></iconify-icon>`
+    pub note: String,
+    /// Icon for `> [!TIP]` / `> [!INFO]` callouts.
+    /// Default: `<iconify-icon icon="ic:baseline-lightbulb" aria-hidden="true"></iconify-icon>`
+    pub tip: String,
+    /// Icon for `> [!IMPORTANT]` callouts.
+    /// Default: `<iconify-icon icon="ic:baseline-priority-high" aria-hidden="true"></iconify-icon>`
+    pub important: String,
+    /// Icon for `> [!WARNING]` / `> [!WARN]` callouts.
+    /// Default: `<iconify-icon icon="ic:baseline-warning" aria-hidden="true"></iconify-icon>`
+    pub warning: String,
+    /// Icon for `> [!CAUTION]` / `> [!DANGER]` callouts.
+    /// Default: `<iconify-icon icon="ic:baseline-report" aria-hidden="true"></iconify-icon>`
+    pub caution: String,
+    /// Icon for `> [!MUST]` callouts.
+    /// Default: `<iconify-icon icon="ic:baseline-push-pin" aria-hidden="true"></iconify-icon>`
+    pub must: String,
+    /// Icon for `> [!RECOMMEND]` callouts.
+    /// Default: `<iconify-icon icon="ic:baseline-thumb-up" aria-hidden="true"></iconify-icon>`
+    pub recommend: String,
+    /// Icon for `> [!DONT]` callouts.
+    /// Default: `<iconify-icon icon="ic:baseline-block" aria-hidden="true"></iconify-icon>`
+    pub dont: String,
+    /// Icon for `> [!NEVER]` callouts.
+    /// Default: `<iconify-icon icon="ic:baseline-do-not-disturb-on" aria-hidden="true"></iconify-icon>`
+    pub never: String,
+    /// Icon for `> [!EXAMPLE]` callouts.
+    /// Default: `<iconify-icon icon="ic:baseline-description" aria-hidden="true"></iconify-icon>`
+    pub example: String,
 }
 
 impl Default for Icons {
     fn default() -> Self {
         Self {
-            video: r#"<span class="bi bi-camera-video-fill" aria-hidden="true"></span>"#
+            video: r#"<iconify-icon icon="ic:baseline-videocam" aria-hidden="true"></iconify-icon>"#
                 .to_string(),
-            audio: r#"<span class="bi bi-music-note-beamed" aria-hidden="true"></span>"#
+            audio: r#"<iconify-icon icon="ic:baseline-music-note" aria-hidden="true"></iconify-icon>"#
                 .to_string(),
             download:
-                r#"<span class="bi bi-file-earmark-arrow-down-fill" aria-hidden="true"></span>"#
+                r#"<iconify-icon icon="ic:baseline-file-download" aria-hidden="true"></iconify-icon>"#
                     .to_string(),
-            color_swatch: r#"<span class="bi bi-palette-fill" aria-hidden="true"></span>"#
+            color_swatch: r#"<iconify-icon icon="ic:baseline-palette" aria-hidden="true"></iconify-icon>"#
                 .to_string(),
+            note: r#"<iconify-icon icon="ic:baseline-info" aria-hidden="true"></iconify-icon>"#
+                .to_string(),
+            tip: r#"<iconify-icon icon="ic:baseline-lightbulb" aria-hidden="true"></iconify-icon>"#
+                .to_string(),
+            important:
+                r#"<iconify-icon icon="ic:baseline-priority-high" aria-hidden="true"></iconify-icon>"#
+                    .to_string(),
+            warning: r#"<iconify-icon icon="ic:baseline-warning" aria-hidden="true"></iconify-icon>"#
+                .to_string(),
+            caution: r#"<iconify-icon icon="ic:baseline-report" aria-hidden="true"></iconify-icon>"#
+                .to_string(),
+            must: r#"<iconify-icon icon="ic:baseline-push-pin" aria-hidden="true"></iconify-icon>"#
+                .to_string(),
+            recommend:
+                r#"<iconify-icon icon="ic:baseline-thumb-up" aria-hidden="true"></iconify-icon>"#
+                    .to_string(),
+            dont: r#"<iconify-icon icon="ic:baseline-block" aria-hidden="true"></iconify-icon>"#
+                .to_string(),
+            never:
+                r#"<iconify-icon icon="ic:baseline-do-not-disturb-on" aria-hidden="true"></iconify-icon>"#
+                    .to_string(),
+            example:
+                r#"<iconify-icon icon="ic:baseline-description" aria-hidden="true"></iconify-icon>"#
+                    .to_string(),
         }
     }
 }

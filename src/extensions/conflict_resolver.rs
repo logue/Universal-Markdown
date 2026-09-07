@@ -749,6 +749,7 @@ pub fn postprocess_conflicts_with_options(
     html: &str,
     header_map: &HeaderIdMap,
     allow_hex_colors: bool,
+    icons: &crate::parser::Icons,
 ) -> String {
     use crate::extensions::block_decorations;
 
@@ -1156,13 +1157,13 @@ pub fn postprocess_conflicts_with_options(
     result = apply_tasklist_indeterminate(&result);
 
     // Apply Bootstrap default classes, GFM alerts, and table cell alignment
-    result = apply_bootstrap_enhancements(&result, &header_map);
+    result = apply_bootstrap_enhancements(&result, &header_map, icons);
 
     result
 }
 
 pub fn postprocess_conflicts(html: &str, header_map: &HeaderIdMap) -> String {
-    postprocess_conflicts_with_options(html, header_map, false)
+    postprocess_conflicts_with_options(html, header_map, false, &crate::parser::Icons::default())
 }
 
 /// Apply indeterminate task list state to rendered checkboxes.
@@ -1191,7 +1192,11 @@ fn apply_tasklist_indeterminate(html: &str) -> String {
 /// - Add default `blockquote` class to all <blockquote> elements (except UMD-style)
 /// - Convert GFM-alert-style blockquotes ([!NOTE], etc.) to UMD's own .umd-note-* markup
 /// - Add JUSTIFY support for tables (w-100 class)
-fn apply_bootstrap_enhancements(html: &str, header_map: &HeaderIdMap) -> String {
+fn apply_bootstrap_enhancements(
+    html: &str,
+    header_map: &HeaderIdMap,
+    icons: &crate::parser::Icons,
+) -> String {
     let mut result = html.to_string();
 
     // Add default class to tables
@@ -1229,23 +1234,23 @@ fn apply_bootstrap_enhancements(html: &str, header_map: &HeaderIdMap) -> String 
             let alert_type = &caps[1];
             let content = &caps[2];
 
-            let (note_type, label, role) = match alert_type {
-                "NOTE" | "SUCCESS" => ("note", "Note", " role=\"doc-notice note\""),
-                "TIP" | "INFO" => ("tip", "Tip", " role=\"doc-tip note\""),
-                "IMPORTANT" => ("important", "Important", ""),
-                "WARNING" | "WARN" => ("warning", "Warning", ""),
-                "CAUTION" | "DANGER" => ("caution", "Caution", ""),
-                "MUST" => ("must", "Must", ""),
-                "RECOMMEND" => ("recommend", "Recommend", ""),
-                "DONT" => ("dont", "Don't", ""),
-                "NEVER" => ("never", "Never", ""),
-                "EXAMPLE" => ("example", "Example", " role=\"doc-example region\""),
-                _ => ("note", "Note", " role=\"doc-notice note\""),
+            let (note_type, label, role, icon) = match alert_type {
+                "NOTE" | "SUCCESS" => ("note", "Note", " role=\"doc-notice note\"", &icons.note),
+                "TIP" | "INFO" => ("tip", "Tip", " role=\"doc-tip note\"", &icons.tip),
+                "IMPORTANT" => ("important", "Important", "", &icons.important),
+                "WARNING" | "WARN" => ("warning", "Warning", "", &icons.warning),
+                "CAUTION" | "DANGER" => ("caution", "Caution", "", &icons.caution),
+                "MUST" => ("must", "Must", "", &icons.must),
+                "RECOMMEND" => ("recommend", "Recommend", "", &icons.recommend),
+                "DONT" => ("dont", "Don't", "", &icons.dont),
+                "NEVER" => ("never", "Never", "", &icons.never),
+                "EXAMPLE" => ("example", "Example", " role=\"doc-example region\"", &icons.example),
+                _ => ("note", "Note", " role=\"doc-notice note\"", &icons.note),
             };
 
             format!(
-                "<aside class=\"umd-note umd-note-{}\"{}><p class=\"umd-note-title\">{}</p><p>{}</p></aside>",
-                note_type, role, label, content
+                "<aside class=\"umd-note umd-note-{}\"{}><p class=\"umd-note-title\">{} {}</p><p>{}</p></aside>",
+                note_type, role, icon, label, content
             )
         })
         .to_string();
@@ -1464,20 +1469,33 @@ mod tests {
     #[test]
     fn test_gfm_alert_note() {
         let header_map = HeaderIdMap::new();
+        let icons = crate::parser::Icons::default();
         let input = r#"<blockquote class="blockquote"><p>[!NOTE] This is a note</p></blockquote>"#;
         let output = postprocess_conflicts(input, &header_map);
-        assert!(output.contains(r#"<aside class="umd-note umd-note-note" role="doc-notice note">"#));
-        assert!(output.contains(r#"<p class="umd-note-title">Note</p>"#));
+        assert!(
+            output.contains(r#"<aside class="umd-note umd-note-note" role="doc-notice note">"#)
+        );
+        assert!(output.contains(&format!(
+            r#"<p class="umd-note-title">{} Note</p>"#,
+            icons.note
+        )));
         assert!(output.contains("This is a note"));
     }
 
     #[test]
     fn test_gfm_alert_example() {
         let header_map = HeaderIdMap::new();
+        let icons = crate::parser::Icons::default();
         let input = r#"<blockquote class="blockquote"><p>[!EXAMPLE] Sample usage</p></blockquote>"#;
         let output = postprocess_conflicts(input, &header_map);
-        assert!(output.contains(r#"<aside class="umd-note umd-note-example" role="doc-example region">"#));
-        assert!(output.contains(r#"<p class="umd-note-title">Example</p>"#));
+        assert!(
+            output
+                .contains(r#"<aside class="umd-note umd-note-example" role="doc-example region">"#)
+        );
+        assert!(output.contains(&format!(
+            r#"<p class="umd-note-title">{} Example</p>"#,
+            icons.example
+        )));
     }
 
     #[test]
@@ -1501,20 +1519,30 @@ mod tests {
     #[test]
     fn test_gfm_alert_warning() {
         let header_map = HeaderIdMap::new();
+        let icons = crate::parser::Icons::default();
         let input = r#"<blockquote class="blockquote"><p>[!WARNING] Be careful</p></blockquote>"#;
         let output = postprocess_conflicts(input, &header_map);
         assert!(output.contains(r#"<aside class="umd-note umd-note-warning">"#));
-        assert!(output.contains(r#"<p class="umd-note-title">Warning</p>"#));
+        assert!(output.contains(&format!(
+            r#"<p class="umd-note-title">{} Warning</p>"#,
+            icons.warning
+        )));
     }
 
     #[test]
     fn test_gfm_alert_extended_types() {
         let header_map = HeaderIdMap::new();
-        for (input_type, expected_class, expected_label) in [
-            ("MUST", "umd-note-must", "Must"),
-            ("RECOMMEND", "umd-note-recommend", "Recommend"),
-            ("DONT", "umd-note-dont", "Don't"),
-            ("NEVER", "umd-note-never", "Never"),
+        let icons = crate::parser::Icons::default();
+        for (input_type, expected_class, expected_label, expected_icon) in [
+            ("MUST", "umd-note-must", "Must", &icons.must),
+            (
+                "RECOMMEND",
+                "umd-note-recommend",
+                "Recommend",
+                &icons.recommend,
+            ),
+            ("DONT", "umd-note-dont", "Don't", &icons.dont),
+            ("NEVER", "umd-note-never", "Never", &icons.never),
         ] {
             let input = format!(
                 r#"<blockquote class="blockquote"><p>[!{}] Body</p></blockquote>"#,
@@ -1529,7 +1557,10 @@ mod tests {
                 output
             );
             assert!(
-                output.contains(&format!(r#"<p class="umd-note-title">{}</p>"#, expected_label)),
+                output.contains(&format!(
+                    r#"<p class="umd-note-title">{} {}</p>"#,
+                    expected_icon, expected_label
+                )),
                 "expected label {} in output for [!{}]: {}",
                 expected_label,
                 input_type,

@@ -65,6 +65,7 @@ pub fn apply_extensions_with_headers(
         &result,
         header_map,
         options.allow_hex_colors,
+        &options.icons,
     );
     result = emphasis::apply_umd_emphasis(&result);
     result = block_decorations::apply_block_placement(&result); // Apply block placement first
@@ -232,7 +233,7 @@ mod tests {
         let input = "<p><code>#FF5733</code></p>";
         let output = apply_extensions(input);
         assert!(output.contains(
-            r#"<code><span class="inline-code-color" style="background-color: #FF5733;"><span class="bi bi-palette-fill" aria-hidden="true"></span></span>#FF5733</code>"#
+            r#"<code><span class="inline-code-color" style="background-color: #FF5733;"><iconify-icon icon="ic:baseline-palette" aria-hidden="true"></iconify-icon></span>#FF5733</code>"#
         ));
     }
 

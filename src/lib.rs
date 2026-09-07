@@ -99,6 +99,16 @@ struct WasmIconsOptions {
     audio: Option<String>,
     download: Option<String>,
     color_swatch: Option<String>,
+    note: Option<String>,
+    tip: Option<String>,
+    important: Option<String>,
+    warning: Option<String>,
+    caution: Option<String>,
+    must: Option<String>,
+    recommend: Option<String>,
+    dont: Option<String>,
+    never: Option<String>,
+    example: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -154,6 +164,36 @@ fn parse_with_options_json(input: &str, options_json: Option<&str>) -> String {
                     }
                     if let Some(value) = icons.color_swatch {
                         options.icons.color_swatch = value;
+                    }
+                    if let Some(value) = icons.note {
+                        options.icons.note = value;
+                    }
+                    if let Some(value) = icons.tip {
+                        options.icons.tip = value;
+                    }
+                    if let Some(value) = icons.important {
+                        options.icons.important = value;
+                    }
+                    if let Some(value) = icons.warning {
+                        options.icons.warning = value;
+                    }
+                    if let Some(value) = icons.caution {
+                        options.icons.caution = value;
+                    }
+                    if let Some(value) = icons.must {
+                        options.icons.must = value;
+                    }
+                    if let Some(value) = icons.recommend {
+                        options.icons.recommend = value;
+                    }
+                    if let Some(value) = icons.dont {
+                        options.icons.dont = value;
+                    }
+                    if let Some(value) = icons.never {
+                        options.icons.never = value;
+                    }
+                    if let Some(value) = icons.example {
+                        options.icons.example = value;
                     }
                 }
             }
@@ -309,7 +349,12 @@ fn extract_footnotes(html: &str) -> (String, Option<String>) {
 /// - `baseUrl`: string
 /// - `allowFragmentExtensionHint`: boolean
 /// - `allowHexColors`: boolean
-/// - `icons`: object with `video`, `audio`, `download`, `colorSwatch`
+/// - `icons`: object with `video`, `audio`, `download`, `colorSwatch`, `note`,
+///   `tip`, `important`, `warning`, `caution`, `must`, `recommend`, `dont`,
+///   `never`, `example`. Defaults render via the Iconify
+///   [`<iconify-icon>`](https://iconify.design/docs/iconify-icon/) web
+///   component using Google's Material Icons (`ic:` prefix); loading the
+///   Iconify Icon script is the host app's responsibility.
 ///
 /// # Arguments
 ///
@@ -330,7 +375,7 @@ fn extract_footnotes(html: &str) -> (String, Option<String>) {
 ///   baseUrl: '/app',
 ///   maxInlineNesting: 4,
 ///   icons: {
-///     colorSwatch: '<span class="bi bi-eyedropper" aria-hidden="true"></span>'
+///     colorSwatch: '<iconify-icon icon="ic:baseline-colorize" aria-hidden="true"></iconify-icon>'
 ///   }
 /// }));
 /// console.log(html);

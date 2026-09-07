@@ -2,7 +2,7 @@
 name = "umd"
 version = "0.1.3"
 edition = "2024"
-rust-version = "1.98.0"
+rust-version = "1.98.1"
 license = "Apache-2.0"
 authors = ["logue"]
 description = "Universal Markdown - A post-Markdown superset with Bootstrap 5 integration and extensible syntax"
@@ -14,45 +14,45 @@ keywords = ["markdown", "parser", "commonmark", "bootstrap", "wasm"]
 categories = ["parser-implementations", "text-processing", "wasm"]
 exclude = [
   ".github/**",
-  "target/**",
-  "pkg/**",
   "AI_Handover_Document.md",
-  "test_table",
-  "scss/**",
-  "scripts/**",
-  "package.json",
   "package-lock.json",
+  "package.json",
+  "pkg/**",
   "rsbuild.config.ts",
+  "scripts/**",
+  "scss/**",
+  "target/**",
+  "test_table",
 ]
 
 [lib]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-wasm-bindgen = "0.2.127" # WASM bindings
-comrak = "0.54.0" # Markdown parser (GFM)
 ammonia = "4.1.4" # HTML sanitization
-maud = "0.27.0" # Type-safe HTML generation
-regex = "1.13.1" # Pattern matching
-once_cell = "1.21.4" # Lazy static initialization
-unicode-segmentation = "1.13.3" # Grapheme cluster handling
-html-escape = "0.2.15" # HTML escaping
 base64 = "0.23.1" # Base64 encoding for content protection
-serde_json = "1.0.151" # JSON serialization for definition lists
+comrak = "0.55.0" # Markdown parser (GFM)
+html-escape = "0.2.15" # HTML escaping
+math-core = "0.8.2" # LaTeX to MathML Core conversion for &math/@math
+maud = "0.27.0" # Type-safe HTML generation
+once_cell = "1.21.4" # Lazy static initialization
+regex = "1.13.1" # Pattern matching
 serde = { version = "1.0.229", features = ["derive"] } # Serialization
-uuid = { version = "1.25.0", features = [
+serde_json = "1.0.151" # JSON serialization for definition lists
+unicode-segmentation = "1.13.3" # Grapheme cluster handling
+uuid = { version = "1.26.0", features = [
   "v4",
   "js",
 ] } # UUID generation for diagram IDs
-math-core = "0.7.0" # LaTeX to MathML Core conversion for &math/@math
+wasm-bindgen = "0.2.127" # WASM bindings
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 mermaid-rs-renderer = { version = "0.3.1", default-features = false } # Mermaid SSR (native only)
 syntect = "5.3.0"                                                     # Syntax highlighting (native only)
 
 [dev-dependencies]
-insta = "1.48.0"             # Snapshot testing
 criterion = "0.8.2"          # Benchmarking
+insta = "1.48.0"             # Snapshot testing
 wasm-bindgen-test = "0.3.77" # WASM testing
 
 [profile.release]

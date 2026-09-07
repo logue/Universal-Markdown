@@ -262,7 +262,7 @@ async function main() {
       allowFragmentExtensionHint: true,
       icons: {
         colorSwatch:
-          '<span class="bi bi-eyedropper" aria-hidden="true"></span>',
+          '<iconify-icon icon="ic:baseline-colorize" aria-hidden="true"></iconify-icon>',
       },
     }),
   );
@@ -272,6 +272,31 @@ async function main() {
 
 main();
 ```
+
+### Icons
+
+Every icon umd-core generates — media fallback links (`video`, `audio`,
+`download`), the inline color swatch (`colorSwatch`), and each `> [!NOTE]`-style
+callout (`note`, `tip`, `important`, `warning`, `caution`, `must`, `recommend`,
+`dont`, `never`, `example`) — is plain HTML configured through
+`ParserOptions.icons` (Rust) / the `icons` object in the JSON options (WASM),
+exactly like `colorSwatch` above.
+
+- **Default icon system**: [Iconify](https://iconify.design/)'s
+  [`<iconify-icon>`](https://iconify.design/docs/iconify-icon/) web component,
+  using Google's Material Icons set (`ic:` prefix) — e.g.
+  `<iconify-icon icon="ic:baseline-warning"></iconify-icon>`.
+- **A script is required to render them**: umd-core only emits the
+  `<iconify-icon>` markup; it does not bundle or load any JavaScript itself.
+  The host application must include the Iconify Icon script (e.g.
+  `<script src="https://code.iconify.design/iconify-icon/2.x/iconify-icon.min.js"></script>`
+  or the `iconify-icon` npm package) for icons to actually render — the same
+  responsibility the previous Bootstrap Icons defaults placed on the host app.
+- **Fully replaceable**: every field is a raw HTML string inserted verbatim,
+  so if Iconify/Material Icons don't fit your app, override any or all of
+  them with Bootstrap Icons, Font Awesome, an inline `<svg>`, or anything
+  else — see `Icons::default()` in `src/parser.rs` for the full field list
+  and default values.
 
 ---
 
@@ -283,7 +308,7 @@ main();
 ![Video Demo](demo.mp4) → <video controls><source src="demo.mp4" type="video/mp4" />...</video>
 ![Background Music](bg.mp3) → <audio controls><source src="bg.mp3" type="audio/mpeg" />...</audio>
 ![Screenshot](screen.png) → <picture><source srcset="screen.png" type="image/png" /><img src="screen.png" alt="Screenshot" loading="lazy" /></picture>
-![Download](file.pdf) → <a href="file.pdf" download>📄 file.pdf</a>
+![Download](file.pdf) → <a href="file.pdf" download><iconify-icon icon="ic:baseline-file-download"></iconify-icon> file.pdf</a>
 ```
 
 ### Block Decorations

@@ -207,9 +207,19 @@
 
 ### `icons`
 
-`ParserOptions.icons` で、動画・音声・ダウンロード・カラーサンプルのアイコン HTML を差し替え可能です。
+`ParserOptions.icons`（`Icons` 構造体, `src/parser.rs`）で、動画・音声・ダウンロード・カラーサンプル
+（および `> [!NOTE]` 系コールアウトの各アイコン）の HTML を差し替え可能です。
 
-既定値は Bootstrap Icons ベースです。
+- **既定値**: [Iconify](https://iconify.design/) の [`<iconify-icon>`](https://iconify.design/docs/iconify-icon/)
+  Web Component を使用し、アイコンセットは Google Material Icons（`ic:` プレフィックス）です。
+- **表示にはスクリプトの埋め込みが必要**: umd-core が生成するのは `<iconify-icon>` タグの HTML のみで、
+  JavaScript 自体はバンドル・読み込みしません。実際にアイコンを表示するには、利用側アプリが
+  Iconify Icon のスクリプト（例: `<script src="https://code.iconify.design/iconify-icon/2.x/iconify-icon.min.js"></script>`
+  や `iconify-icon` npm パッケージ）を別途読み込む必要があります。これは旧来の Bootstrap Icons 既定値でも
+  同様に利用側の責務でした。
+- **差し替え可能**: 各フィールドはそのまま HTML として挿入される生の文字列なので、Iconify や
+  Material Icons が気に入らなければ Bootstrap Icons・Font Awesome・インライン `<svg>` など任意のもの
+  に丸ごと置き換え可能です。既定値の一覧は `Icons::default()`（`src/parser.rs`）を参照してください。
 
 ## 補足
 

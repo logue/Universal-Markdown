@@ -3,22 +3,22 @@
 **プロジェクト概要**: Markdownを超える次世代マークアップ言語。CommonMark仕様テスト 75%+ パス、Bootstrap 5統合、セマンティックHTML、拡張可能なプラグインシステム提供。
 
 **作成日**: 2026年1月23日  
-**最終更新**: 2026年8月26日  
-**Rustバージョン**: 1.98.0 (Edition 2024)  
+**最終更新**: 2026年9月07日  
+**Rustバージョン**: 1.98.1 (Edition 2024)  
 **ライセンス**: Apache-2.0
 
 ### 主要ライブラリ
 
 | ライブラリ          | バージョン | 用途                                     |
 | ------------------- | ---------- | ---------------------------------------- |
-| comrak              | 0.54.0     | Markdown パーサー (GFM)                  |
 | ammonia             | 4.1.4      | HTML サニタイズ                          |
+| comrak              | 0.55.0     | Markdown パーサー (GFM)                  |
+| math-core           | 0.8.2      | LaTeX to MathML 変換                     |
 | maud                | 0.27.0     | 型安全 HTML 生成                         |
-| regex               | 1.13.1     | パターンマッチング                       |
-| wasm-bindgen        | 0.2.127    | WASM バインディング                      |
-| syntect             | 5.3.0      | シンタックスハイライト（ネイティブのみ） |
 | mermaid-rs-renderer | 0.3.1      | Mermaid SSR レンダリング                 |
-| math-core           | 0.7.0      | LaTeX to MathML 変換                     |
+| regex               | 1.13.1     | パターンマッチング                       |
+| syntect             | 5.3.0      | シンタックスハイライト（ネイティブのみ） |
+| wasm-bindgen        | 0.2.127    | WASM バインディング                      |
 
 ---
 
@@ -136,13 +136,13 @@ content
 
 CommonMark の `~~strikethrough~~` を廃止し、テキスト装飾記法を再設計します。各記号がCSS `text-decoration` の値に1対1で対応する「文法の直交性」を重視した設計です。
 
-| 記法 | 出力要素 | CSS | 備考 |
-|------|----------|-----|------|
-| `__text__` | `<u>` | `text-decoration: underline` | Discord互換 |
-| `^^text^^` | `<span class="umd-overline">` | `text-decoration: overline` | `^`は「上」のニーモニック、ASCII範囲内 |
-| `~~text~~` | `<span class="umd-wavy">` | `text-decoration: underline wavy` | `~~`の形が波線に対応 |
-| `==text==` | `<span class="umd-overunderline">` | `text-decoration: underline overline` | 上下ライン |
-| `{- text -}` | `<del>` | ブラウザデフォルト | diff記法の`-`に対応、スペース必須 |
+| 記法         | 出力要素                           | CSS                                   | 備考                                   |
+| ------------ | ---------------------------------- | ------------------------------------- | -------------------------------------- |
+| `__text__`   | `<u>`                              | `text-decoration: underline`          | Discord互換                            |
+| `^^text^^`   | `<span class="umd-overline">`      | `text-decoration: overline`           | `^`は「上」のニーモニック、ASCII範囲内 |
+| `~~text~~`   | `<span class="umd-wavy">`          | `text-decoration: underline wavy`     | `~~`の形が波線に対応                   |
+| `==text==`   | `<span class="umd-overunderline">` | `text-decoration: underline overline` | 上下ライン                             |
+| `{- text -}` | `<del>`                            | ブラウザデフォルト                    | diff記法の`-`に対応、スペース必須      |
 
 > ⚠️ CommonMarkの `~~strikethrough~~` との非互換あり。UMDは意図的にこの仕様を変更しています。
 
@@ -157,6 +157,7 @@ CommonMark の `~~strikethrough~~` を廃止し、テキスト装飾記法を再
 ```
 
 **パラメータ**:
+
 - `fill`（第1引数）: 文字の塗り色。デフォルト = `--umd-body-bg`（背景色）
 - `stroke`（第2引数）: 輪郭色。デフォルト = `--umd-body-color`（前景色）
 
@@ -167,7 +168,11 @@ CommonMark の `~~strikethrough~~` を廃止し、テキスト装飾記法を再
 <span class="umd-outline">text</span>
 
 <!-- &outline(white, blue){text} -->
-<span class="umd-outline" style="--umd-outline-fill: white; --umd-outline-stroke: blue;">text</span>
+<span
+  class="umd-outline"
+  style="--umd-outline-fill: white; --umd-outline-stroke: blue;"
+  >text</span
+>
 ```
 
 ### 実装計画（テキスト装飾）
@@ -361,54 +366,54 @@ Subresource Integrity (SRI) 相当のハッシュ検証をリンク・画像に�
 
 **display.scss**
 
-| 旧 | 新 | CSS |
-|---|---|---|
-| `.d-block` | `.umd-block` | `display: block` |
-| `.d-inline-block` | `.umd-inline-block` | `display: inline-block` |
-| `.d-none` | `.umd-hidden` | `display: none` |
-| `.w-100` | `.umd-block-justify` | `inline-size: 100%` |
-| `.w-auto` | `.umd-block-center` | `inline-size: auto; margin-inline: auto` |
+| 旧                | 新                   | CSS                                      |
+| ----------------- | -------------------- | ---------------------------------------- |
+| `.d-block`        | `.umd-block`         | `display: block`                         |
+| `.d-inline-block` | `.umd-inline-block`  | `display: inline-block`                  |
+| `.d-none`         | `.umd-hidden`        | `display: none`                          |
+| `.w-100`          | `.umd-block-justify` | `inline-size: 100%`                      |
+| `.w-auto`         | `.umd-block-center`  | `inline-size: auto; margin-inline: auto` |
 
 **text.scss**
 
-| 旧 | 新 | CSS |
-|---|---|---|
-| `.text-center` | `.umd-center` | `text-align: center` |
-| `.text-end` | `.umd-end` | `text-align: end` |
-| （新規）| `.umd-start` | `text-align: start` |
-| （新規）| `.umd-justify` | `text-align: justify` |
-| （新規）| `.umd-v-start/center/end` | `vertical-align: top/middle/bottom` |
-| （新規）| `.umd-text-size-xs/sm/lg/xl` | `font-size: x-small/small/large/x-large` |
-| `.fs-4` | （削除）| — |
+| 旧             | 新                           | CSS                                      |
+| -------------- | ---------------------------- | ---------------------------------------- |
+| `.text-center` | `.umd-center`                | `text-align: center`                     |
+| `.text-end`    | `.umd-end`                   | `text-align: end`                        |
+| （新規）       | `.umd-start`                 | `text-align: start`                      |
+| （新規）       | `.umd-justify`               | `text-align: justify`                    |
+| （新規）       | `.umd-v-start/center/end`    | `vertical-align: top/middle/bottom`      |
+| （新規）       | `.umd-text-size-xs/sm/lg/xl` | `font-size: x-small/small/large/x-large` |
+| `.fs-4`        | （削除）                     | —                                        |
 
 **spacing.scss**
 
-| 旧 | 新 | CSS |
-|---|---|---|
-| `.mx-auto` | `.umd-inline-center` | `margin-inline: auto` |
-| `.ms-auto` | `.umd-block-end` | `margin-inline-start: auto` |
-| `.me-auto` | `.umd-block-start` | `margin-inline-end: auto` |
-| `.me-0` | （削除）| — |
+| 旧         | 新                   | CSS                         |
+| ---------- | -------------------- | --------------------------- |
+| `.mx-auto` | `.umd-inline-center` | `margin-inline: auto`       |
+| `.ms-auto` | `.umd-block-end`     | `margin-inline-start: auto` |
+| `.me-auto` | `.umd-block-start`   | `margin-inline-end: auto`   |
+| `.me-0`    | （削除）             | —                           |
 
 **components/content.scss**
 
-| 旧 | 新 |
-|---|---|
+| 旧                          | 新                             |
+| --------------------------- | ------------------------------ |
 | `.blockquote`（エイリアス） | 削除（`.umd-blockquote` のみ） |
-| `.spoiler` | `.umd-spoiler` |
-| `.inline-code-color` | `.umd-color-swatch` |
+| `.spoiler`                  | `.umd-spoiler`                 |
+| `.inline-code-color`        | `.umd-color-swatch`            |
 
 **components/code-block.scss**
 
-| 旧 | 新 |
-|---|---|
+| 旧            | 新                |
+| ------------- | ----------------- |
 | `.code-block` | `.umd-code-block` |
 | `.code-title` | `.umd-code-title` |
 
 **base.scss**
 
-| 旧 | 新 |
-|---|---|
+| 旧           | 新               |
+| ------------ | ---------------- |
 | `.footnotes` | `.umd-footnotes` |
 
 ### 基本ルール（脱Bootstrap化）
@@ -500,7 +505,7 @@ CSS 仕様に `vertical-align` の論理的代替が存在しないため、`V-`
 
 ### 2026年8月26日
 
-#### リファレンスCSS整備・クラス名umd-*統一
+#### リファレンスCSS整備・クラス名umd-\*統一
 
 - 全SCSSファイルのBootstrapクラス名を `umd-*` プレフィックスへ改名（詳細は上表）
 - `tokens.scss`: セマンティックトークン（`--umd-color-primary/success/danger/warning`）を削除、`light-dark()` に一本化、ハードコーディングされたhex値をOKLCHパレット変数参照へ置換
